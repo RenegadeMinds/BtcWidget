@@ -10,11 +10,15 @@
     <RootNamespace>BtcWidget</RootNamespace>
     <AssemblyName>BtcWidget</AssemblyName>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
-    <Version>1.3.0</Version>
+    <Version>1.4.0</Version>
     <Product>BtcWidget</Product>
     <AssemblyTitle>BtcWidget</AssemblyTitle>
     <Description>Always-available desktop widget for crypto and stock prices, alerts and news.</Description>
-    <Copyright>Copyright (c) 2025-2026 BtcWidget contributors</Copyright>
+    <Copyright>Copyright (c) 2025-2026 Ryan Smyth / Renegade Minds</Copyright>
+    <Authors>Ryan Smyth / Renegade Minds</Authors>
+    <RepositoryUrl>https://github.com/RenegadeMinds/BtcWidget</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/RenegadeMinds/BtcWidget</PackageProjectUrl>
+    <PackageLicenseExpression>WTFPL</PackageLicenseExpression>
     <!-- Single-file publish: unpack the native SQLite / WebView2 loaders beside the exe at first run -->
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>

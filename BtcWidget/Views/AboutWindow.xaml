@@ -1,0 +1,124 @@
+<Window x:Class="BtcWidget.Views.AboutWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:BtcWidget.ViewModels"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=vm:AboutViewModel, IsDesignTimeCreatable=True}"
+        Title="About BtcWidget"
+        SizeToContent="Height" Width="440" ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        FontFamily="Segoe UI Variable, Segoe UI"
+        Background="#FF202329" Foreground="#FFECEFF4">
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="Muted" Color="#FF9AA3B2" />
+        <Style TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="#FFECEFF4" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <!-- Text that acts as a link -->
+        <Style x:Key="Link" TargetType="Button">
+            <Setter Property="Foreground" Value="#FFF7931A" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <TextBlock x:Name="T" Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" />
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="T" Property="TextDecorations" Value="Underline" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="PlainButton" TargetType="Button">
+            <Setter Property="Background" Value="#FF2A2E37" />
+            <Setter Property="Foreground" Value="#FFECEFF4" />
+            <Setter Property="BorderBrush" Value="#FF3A3F4A" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="14,5" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#FF9AA3B2" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.5" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <StackPanel Margin="24,20,24,18">
+        <!-- Name, version, author -->
+        <DockPanel LastChildFill="True">
+            <Image DockPanel.Dock="Left" Source="pack://application:,,,/Assets/app.png" Width="48" Height="48" Margin="0,0,16,0" VerticalAlignment="Top"
+                   RenderOptions.BitmapScalingMode="HighQuality" />
+            <StackPanel>
+                <TextBlock FontSize="20" FontWeight="SemiBold" Foreground="#FFF7931A" Text="BtcWidget" />
+                <TextBlock Foreground="{StaticResource Muted}">
+                    <Run Text="Version " /><Run Text="{Binding Version, Mode=OneWay}" />
+                </TextBlock>
+                <TextBlock Text="{Binding Copyright}" Margin="0,6,0,0" />
+                <TextBlock Foreground="{StaticResource Muted}" Margin="0,2,0,0"
+                           Text="Always-available desktop widget for crypto and stock prices, alerts and news." />
+            </StackPanel>
+        </DockPanel>
+
+        <!-- Links -->
+        <StackPanel Margin="64,14,0,0">
+            <Button Style="{StaticResource Link}" Command="{Binding OpenRepoCommand}" Content="{Binding RepoUrl}" ToolTip="Source code and the README, which is the help" />
+            <TextBlock Foreground="{StaticResource Muted}" Margin="0,2,0,0" Text="Help, source and issues. The README there explains everything." />
+        </StackPanel>
+
+        <!-- Updates -->
+        <Border Background="#FF2A2E37" BorderBrush="#FF3A3F4A" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="0,16,0,0">
+            <StackPanel>
+                <DockPanel LastChildFill="True">
+                    <Button DockPanel.Dock="Left" Style="{StaticResource PlainButton}" Content="Check for updates" Command="{Binding CheckCommand}" Margin="0,0,12,0" x:Name="CheckButton" />
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding UpdateStatus}" />
+                        <Button Style="{StaticResource Link}" Command="{Binding OpenDownloadCommand}" Content="Download from GitHub Releases"
+                                Visibility="{Binding HasDownload, Converter={StaticResource BoolToVisibility}}" />
+                    </StackPanel>
+                </DockPanel>
+                <CheckBox IsChecked="{Binding CheckDaily}" Margin="0,10,0,0">
+                    <TextBlock Text="Check once a day; the ? button on the widget lights up when a newer version is out" TextWrapping="Wrap" />
+                </CheckBox>
+            </StackPanel>
+        </Border>
+
+        <!-- License, close -->
+        <DockPanel LastChildFill="True" Margin="0,16,0,0">
+            <Button DockPanel.Dock="Right" Style="{StaticResource PlainButton}" Content="Close" IsCancel="True" IsDefault="True" />
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Foreground="{StaticResource Muted}" Text="License: " />
+                <Button Style="{StaticResource Link}" Command="{Binding OpenLicenseCommand}" Content="{Binding LicenseName}" ToolTip="Do What The F*ck You Want To Public License" VerticalAlignment="Center" />
+            </StackPanel>
+        </DockPanel>
+    </StackPanel>
+</Window>

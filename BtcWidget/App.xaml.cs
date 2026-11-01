@@ -10,6 +10,13 @@ namespace BtcWidget;
 
 public partial class App : Application
 {
+    // Single instance: the second launch pokes this event and exits; the first instance shows itself.
+    private const string InstanceMutexName = @"Local\BtcWidget-5b1c6b0e-single-instance";
+    private const string ShowEventName = @"Local\BtcWidget-5b1c6b0e-show";
+    private Mutex? _instanceMutex;
+    private EventWaitHandle? _showEvent;
+    private RegisteredWaitHandle? _showWait;
+
     private SettingsStore _settingsStore = null!;
     private AppSettings _settings = null!;
     private FeedStore _feedStore = null!;
@@ -33,6 +40,17 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        _instanceMutex = new Mutex(initiallyOwned: true, InstanceMutexName, out var isFirst);
+        _showEvent = new EventWaitHandle(false, EventResetMode.AutoReset, ShowEventName);
+        if (!isFirst)
+        {
+            // Already running: tell it to come forward, then leave.
+            _showEvent.Set();
+            Shutdown();
+            return;
+        }
+        _showWait = ThreadPool.RegisterWaitForSingleObject(_showEvent, (_, _) => Dispatcher.BeginInvoke(ShowWindow), null, -1, executeOnlyOnce: false);
+
         _settingsStore = new SettingsStore();
         _settings = _settingsStore.Load();
         _history = new HistoryStore();
@@ -53,6 +71,7 @@ public partial class App : Application
         _vm.ManageLinesRequested += ShowLines;
         _vm.AlertsRequested += ShowAlerts;
         _vm.NewsRequested += ToggleNews;
+        _vm.AboutRequested += ShowAbout;
         _vm.RestoreRequested += RestoreQuietly;
         _restoreTimer.Tick += (_, _) => { _restoreTimer.Stop(); RestoreQuietly(); };
         _window.StateChanged += (_, _) => ArmRestoreTimer();
@@ -85,6 +104,7 @@ public partial class App : Application
         _window.Show();
         _prices.Start();
         _news.Start();
+        ScheduleUpdateCheck();
         MemoryDiagnostics.Snapshot("startup");
     }
 
@@ -120,6 +140,29 @@ public partial class App : Application
         dlg.ShowDialog();
         TrimHeap();
         MemoryDiagnostics.Snapshot("after Lines dialog + trim");
+    }
+
+    private void ShowAbout()
+    {
+        var dlg = new AboutWindow { Owner = _window, DataContext = new AboutViewModel(_vm), FontSize = _settings.FontSize };
+        dlg.ShowDialog();
+        TrimHeap();
+    }
+
+    /// <summary>Once a day, half a minute after startup so it never competes with the first price poll.</summary>
+    private void ScheduleUpdateCheck()
+    {
+        if (!_settings.CheckForUpdates) return;
+        if (_settings.LastUpdateCheck is { } t && DateTimeOffset.UtcNow - t < TimeSpan.FromHours(24)) return;
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
+        timer.Tick += async (_, _) =>
+        {
+            timer.Stop();
+            if (!_settings.CheckForUpdates) return;
+            var info = await UpdateChecker.CheckAsync();
+            _vm.RecordUpdateCheck(info);
+        };
+        timer.Start();
     }
 
     /// <summary>Alerts dialog; <paramref name="lineId"/> preselects a line (row context menu).</summary>
@@ -280,6 +323,7 @@ public partial class App : Application
         menu.Items.Add(Item("Alerts…", () => ShowAlerts(null)));
         menu.Items.Add(Item("News…", () => { ShowWindow(); ToggleNews(); }));
         menu.Items.Add(Item("Settings…", ShowSettings));
+        menu.Items.Add(Item("About…", ShowAbout));
         menu.Items.Add(new Separator());
         menu.Items.Add(Item("Exit", () => _window.Close()));
         return menu;
@@ -313,6 +357,10 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _showWait?.Unregister(null);
+        _showEvent?.Dispose();
+        _instanceMutex?.Dispose();
+        if (_vm is null) { base.OnExit(e); return; }   // second instance: nothing else was created
         _tray?.Dispose();
         _hotkey?.Dispose();
         _prices.Dispose();

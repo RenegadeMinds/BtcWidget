@@ -92,6 +92,18 @@
                                 ToolTip="Refresh now" Content="&#xE72C;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" />
                         <Button Style="{StaticResource IconButton}" Command="{Binding OpenSettingsCommand}"
                                 ToolTip="Settings" Content="&#xE713;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" />
+                        <!-- About: version, links, update check; lit while a newer release exists -->
+                        <Button Command="{Binding OpenAboutCommand}" ToolTip="{Binding AboutTooltip}" Content="&#xE897;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource IconButton}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasUpdate}" Value="True">
+                                            <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
                         <Button Style="{StaticResource IconButton}" Command="{Binding MinimizeCommand}"
                                 ToolTip="Minimize" Content="&#xE921;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" />
                         <Button Style="{StaticResource IconButton}" Command="{Binding CloseCommand}"

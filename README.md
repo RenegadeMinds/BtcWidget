@@ -21,7 +21,8 @@ WPF on .NET 10. Windows 10 / 11, x64.
   Australia, Korea, Japan, China, Taiwan, India…), plus any RSS / Atom URL you add. Comma-separated text
   filter, sector filter, pin it open, open in your browser or a built-in reader.
 - **Stays out of your way.** Minimize it and it comes back after N minutes or when an alert fires, without
-  ever taking focus. Global hotkey. Tray icon. Opacity, font size, width, always-on-top, tooltips on or off.
+  ever taking focus. Start with Windows. Global hotkey. Tray icon. One instance only: launching it again
+  just brings the running widget forward. Opacity, font size, width, always-on-top, tooltips on or off.
 - **Local data only.** Settings, feeds and price history live in `%LocalAppData%\BtcWidget`. The only
   network traffic is to the providers and feeds you have switched on.
 
@@ -46,7 +47,9 @@ not trust a binary, build it yourself in two commands; see below.
 anywhere; the position is remembered. Drag the left or right edge to change the width, the bottom edge to
 cap the list height (double-click the bottom edge to go back to "grow with content").
 
-**Title bar, left to right:** news, alerts, add / remove lines, refresh, settings, minimize, close.
+**Title bar, left to right:** news, alerts, add / remove lines, refresh, settings, about (?), minimize,
+close. The ✕ exits by default; Settings → Behaviour can make it minimize instead (Exit stays in the tray
+menu either way).
 
 **Lines** (the **+** button). Left: your lines, with reorder, remove, provider and quote switches. Right:
 type a name, ticker or pair (`shopify`, `tesla`, `xrp`, `BTC/CAD`, `ETHBTC`, `gold`, `^VIX`, `EURUSD=X`),
@@ -90,8 +93,12 @@ already in front. Tray icon: left click shows / hides, right click gives Show, R
 Settings, Exit.
 
 **Settings** covers opacity (panel and text separately), font size (everything scales, dialogs included),
-width, list height, tooltips, poll intervals, hotkey, always-on-top, taskbar, the conversion-rate provider
-and its fallback for derived prices, alerts, and news.
+width, list height, tooltips, poll intervals, hotkey, always-on-top, taskbar, start with Windows, what the
+✕ does, the conversion-rate provider and its fallback for derived prices, alerts, and news.
+
+**About** (the ? button, or the tray menu) shows the version, links here, and checks GitHub Releases for a
+newer version on demand. It also checks once a day on its own (switchable there) and lights the ? button
+when one is out. Nothing else ever phones home.
 
 ### Where your data lives
 
@@ -99,7 +106,7 @@ and its fallback for derived prices, alerts, and news.
 
 | File | Contents |
 |---|---|
-| `settings.json` | Everything in Settings, window position, your lines (each with its alerts) |
+| `settings.json` | Everything in Settings, window position, your lines (each with its alerts), the last update check |
 | `feeds.json` | Your news feeds: `id`, `name`, `sector`, `country`, optional `lang`, `url`, `site`, `enabled`, optional `color` (`#RRGGBB` badge). Seeded from the shipped list on first run, then yours to edit by hand or in Settings |
 | `history.db` | SQLite, every reading, used for the sparklines, 7d / 30d and 30-day high / low |
 | `alerts.log` | One line per fired alert |
@@ -113,7 +120,7 @@ Requirements: the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.
 Studio 2026 (or 2022 17.14+) with the .NET desktop workload if you want the designer; not required.
 
 ```bash
-git clone <this repository>
+git clone https://github.com/RenegadeMinds/BtcWidget.git
 ```
 
 ```bash
@@ -174,9 +181,9 @@ older than 48 hours are dropped.
 | `Converters/` | Price / percent formatting and colour converters |
 | `Assets/` | Icons. The provider badges are generated PNGs; drop in real logos with the same names if you like |
 
-Colours and the shared control styles live in `App.xaml`. [`handoff.md`](handoff.md) holds the design
-decisions and gotchas that are not obvious from the code (why tooltips are a class handler, why restoring
-without focus needs `WS_EX_NOACTIVATE`, the 60 MB first-TextBox cost, and so on).
+Colours and the shared control styles live in `App.xaml`. Design decisions and gotchas that are not obvious
+from the code (why tooltips are a class handler, why restoring without focus needs `WS_EX_NOACTIVATE`, the
+60 MB first-TextBox cost) are in comments at the relevant spots.
 
 ### Adding a price source
 
@@ -205,4 +212,5 @@ without focus needs `WS_EX_NOACTIVATE`, the 60 MB first-TextBox cost, and so on)
 
 ## License
 
-To be decided by the repository owner. Until a `LICENSE` file is added, all rights reserved.
+[WTFPL](http://www.wtfpl.net/) — Do What The F\*ck You Want To Public License. See [LICENSE](LICENSE).
+Copyright © 2025–2026 Ryan Smyth / Renegade Minds.

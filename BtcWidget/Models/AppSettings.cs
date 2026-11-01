@@ -14,6 +14,14 @@ public sealed class AppSettings
     public int RestoreAfterMinutes { get; set; } = 0;
     /// <summary>Bring a minimized widget back when an alert fires. Each rule can override this.</summary>
     public bool RestoreOnAlert { get; set; } = true;
+    /// <summary>What the title-bar X does: "exit" or "minimize".</summary>
+    public string CloseButtonAction { get; set; } = "exit";
+    /// <summary>Ask GitHub for the latest release once a day.</summary>
+    public bool CheckForUpdates { get; set; } = true;
+    public DateTimeOffset? LastUpdateCheck { get; set; }
+    /// <summary>Newest release seen on GitHub, and its page, so About can show it without asking again.</summary>
+    public string? LatestVersion { get; set; }
+    public string? LatestUrl { get; set; }
     public bool AlwaysOnTop { get; set; } = false;
     public bool ShowInTaskbar { get; set; } = true;
     public string ToggleHotkey { get; set; } = "Ctrl+Alt+B";

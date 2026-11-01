@@ -185,6 +185,7 @@
             <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!-- Appearance -->
@@ -229,52 +230,57 @@
         <TextBlock Grid.Row="11" Grid.Column="2" Style="{StaticResource Value}" Text="minutes (0 = never)" TextAlignment="Left" />
         <CheckBox  Grid.Row="12" Grid.Column="1" Grid.ColumnSpan="2" Content="Come back when an alert fires" IsChecked="{Binding RestoreOnAlert}"
                    ToolTip="Each alert can override this in the Alerts dialog (show widget: default / yes / no). Never takes focus." />
+        <CheckBox  Grid.Row="13" Grid.Column="1" Grid.ColumnSpan="2" Content="Start with Windows" IsChecked="{Binding StartWithWindows}"
+                   ToolTip="Adds or removes a startup entry for this exe under your user account (HKCU Run)." />
+        <TextBlock Grid.Row="14" Style="{StaticResource Label}" Text="Title-bar ✕" />
+        <ComboBox  Grid.Row="14" Grid.Column="1" ItemsSource="{Binding CloseOptions}" SelectedValue="{Binding CloseButtonAction}"
+                   SelectedValuePath="Id" DisplayMemberPath="DisplayName" ToolTip="Exit is always available in the tray menu." />
 
-        <TextBlock Grid.Row="13" Style="{StaticResource Label}" Text="Show / hide hotkey" />
-        <TextBox   Grid.Row="13" Grid.Column="1" Text="{Binding ToggleHotkey, UpdateSourceTrigger=LostFocus}"
+        <TextBlock Grid.Row="15" Style="{StaticResource Label}" Text="Show / hide hotkey" />
+        <TextBox   Grid.Row="15" Grid.Column="1" Text="{Binding ToggleHotkey, UpdateSourceTrigger=LostFocus}"
                    ToolTip="e.g. Ctrl+Alt+B, Win+Shift+F9. Applies when you leave the field." />
 
-        <CheckBox  Grid.Row="14" Grid.Column="1" Grid.ColumnSpan="2" Content="Always on top" IsChecked="{Binding AlwaysOnTop}" />
-        <CheckBox  Grid.Row="15" Grid.Column="1" Grid.ColumnSpan="2" Content="Show in taskbar" IsChecked="{Binding ShowInTaskbar}" />
+        <CheckBox  Grid.Row="16" Grid.Column="1" Grid.ColumnSpan="2" Content="Always on top" IsChecked="{Binding AlwaysOnTop}" />
+        <CheckBox  Grid.Row="17" Grid.Column="1" Grid.ColumnSpan="2" Content="Show in taskbar" IsChecked="{Binding ShowInTaskbar}" />
 
         <!-- Data: where derived prices get their conversion leg -->
-        <TextBlock Grid.Row="16" Grid.ColumnSpan="3" Style="{StaticResource Section}" Text="CONVERSION RATES" />
+        <TextBlock Grid.Row="18" Grid.ColumnSpan="3" Style="{StaticResource Section}" Text="CONVERSION RATES" />
 
-        <TextBlock Grid.Row="17" Style="{StaticResource Label}" Text="Crypto rates from" />
-        <ComboBox  Grid.Row="17" Grid.Column="1" ItemsSource="{Binding RateProviderOptions}" SelectedValue="{Binding RateProvider}"
+        <TextBlock Grid.Row="19" Style="{StaticResource Label}" Text="Crypto rates from" />
+        <ComboBox  Grid.Row="19" Grid.Column="1" ItemsSource="{Binding RateProviderOptions}" SelectedValue="{Binding RateProvider}"
                    SelectedValuePath="Id" DisplayMemberPath="DisplayName" />
-        <TextBlock Grid.Row="18" Style="{StaticResource Label}" Text="If that fails" />
-        <ComboBox  Grid.Row="18" Grid.Column="1" ItemsSource="{Binding RateProviderOptions}" SelectedValue="{Binding RateFallback}"
+        <TextBlock Grid.Row="20" Style="{StaticResource Label}" Text="If that fails" />
+        <ComboBox  Grid.Row="20" Grid.Column="1" ItemsSource="{Binding RateProviderOptions}" SelectedValue="{Binding RateFallback}"
                    SelectedValuePath="Id" DisplayMemberPath="DisplayName" />
-        <TextBlock Grid.Row="19" Grid.Column="1" Grid.ColumnSpan="2" Style="{StaticResource Note}"
+        <TextBlock Grid.Row="21" Grid.Column="1" Grid.ColumnSpan="2" Style="{StaticResource Note}"
                    Text="Used when no market quotes a pair directly: Tesla in BTC is TSLA/USD ÷ BTC/USD, BTC/DOGE is BTC/USD ÷ DOGE/USD. The line's own provider supplies the first leg, these supply the second. Rates between currencies (USD/CAD) always come from Yahoo Finance." />
 
         <!-- Alerts -->
-        <TextBlock Grid.Row="20" Grid.ColumnSpan="3" Style="{StaticResource Section}" Text="ALERTS" />
-        <CheckBox  Grid.Row="21" Grid.Column="1" Grid.ColumnSpan="2" Content="Windows notification when an alert fires" IsChecked="{Binding ToastsEnabled}"
+        <TextBlock Grid.Row="22" Grid.ColumnSpan="3" Style="{StaticResource Section}" Text="ALERTS" />
+        <CheckBox  Grid.Row="23" Grid.Column="1" Grid.ColumnSpan="2" Content="Windows notification when an alert fires" IsChecked="{Binding ToastsEnabled}"
                    ToolTip="The row is highlighted either way." />
-        <Button    Grid.Row="21" Grid.Column="0" Style="{StaticResource PlainButton}" Content="Manage alerts…" Command="{Binding OpenAlertsCommand}"
+        <Button    Grid.Row="23" Grid.Column="0" Style="{StaticResource PlainButton}" Content="Manage alerts…" Command="{Binding OpenAlertsCommand}"
                    HorizontalAlignment="Left" Margin="0,4,16,4" />
 
         <!-- News popup -->
-        <TextBlock Grid.Row="22" Grid.ColumnSpan="3" Style="{StaticResource Section}" Text="NEWS" />
+        <TextBlock Grid.Row="24" Grid.ColumnSpan="3" Style="{StaticResource Section}" Text="NEWS" />
 
-        <TextBlock Grid.Row="23" Style="{StaticResource Label}" Text="Headlines shown" />
-        <TextBox   Grid.Row="23" Grid.Column="1" Text="{Binding NewsCount, UpdateSourceTrigger=PropertyChanged}" />
-        <TextBlock Grid.Row="23" Grid.Column="2" Style="{StaticResource Value}" Text="newest first" TextAlignment="Left" />
+        <TextBlock Grid.Row="25" Style="{StaticResource Label}" Text="Headlines shown" />
+        <TextBox   Grid.Row="25" Grid.Column="1" Text="{Binding NewsCount, UpdateSourceTrigger=PropertyChanged}" />
+        <TextBlock Grid.Row="25" Grid.Column="2" Style="{StaticResource Value}" Text="newest first" TextAlignment="Left" />
 
-        <TextBlock Grid.Row="24" Style="{StaticResource Label}" Text="Refresh every" />
-        <TextBox   Grid.Row="24" Grid.Column="1" Text="{Binding NewsRefreshMinutes, UpdateSourceTrigger=PropertyChanged}" />
-        <TextBlock Grid.Row="24" Grid.Column="2" Style="{StaticResource Value}" Text="minutes" TextAlignment="Left" />
+        <TextBlock Grid.Row="26" Style="{StaticResource Label}" Text="Refresh every" />
+        <TextBox   Grid.Row="26" Grid.Column="1" Text="{Binding NewsRefreshMinutes, UpdateSourceTrigger=PropertyChanged}" />
+        <TextBlock Grid.Row="26" Grid.Column="2" Style="{StaticResource Value}" Text="minutes" TextAlignment="Left" />
 
-        <TextBlock Grid.Row="25" Style="{StaticResource Label}" Text="Open headlines in" />
-        <ComboBox  Grid.Row="25" Grid.Column="1" ItemsSource="{Binding NewsOpenOptions}" SelectedValue="{Binding NewsOpenIn}"
+        <TextBlock Grid.Row="27" Style="{StaticResource Label}" Text="Open headlines in" />
+        <ComboBox  Grid.Row="27" Grid.Column="1" ItemsSource="{Binding NewsOpenOptions}" SelectedValue="{Binding NewsOpenIn}"
                    SelectedValuePath="Id" DisplayMemberPath="DisplayName"
                    ToolTip="The reader is an Edge (WebView2) page inside the widget; it uses a fair amount of memory while open." />
 
         <!-- Feeds: the catalog plus the user's own, three to a row -->
         <!-- Feeds by sector. Each section folds; sections with something switched on start open. -->
-        <ItemsControl Grid.Row="26" Grid.ColumnSpan="3" ItemsSource="{Binding FeedGroups}" Margin="0,4,0,0">
+        <ItemsControl Grid.Row="28" Grid.ColumnSpan="3" ItemsSource="{Binding FeedGroups}" Margin="0,4,0,0">
             <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="{x:Type vm:NewsFeedGroup}">
                     <Expander IsExpanded="{Binding IsExpanded}" Style="{StaticResource SectionExpander}">
@@ -310,8 +316,8 @@
             </ItemsControl.ItemTemplate>
         </ItemsControl>
 
-        <TextBlock Grid.Row="27" Style="{StaticResource Label}" Text="Add a feed" />
-        <DockPanel Grid.Row="27" Grid.Column="1" LastChildFill="True">
+        <TextBlock Grid.Row="29" Style="{StaticResource Label}" Text="Add a feed" />
+        <DockPanel Grid.Row="29" Grid.Column="1" LastChildFill="True">
             <ComboBox DockPanel.Dock="Right" ItemsSource="{Binding SectorOptions}" SelectedValue="{Binding NewFeedSector}" SelectedValuePath="Id"
                       DisplayMemberPath="DisplayName" MinWidth="120" Margin="8,4,0,4" ToolTip="Sector the new feed is filed under" />
             <TextBox Text="{Binding NewFeedUrl, UpdateSourceTrigger=PropertyChanged}" ToolTip="RSS or Atom feed address">
@@ -320,15 +326,15 @@
                 </TextBox.InputBindings>
             </TextBox>
         </DockPanel>
-        <Button    Grid.Row="27" Grid.Column="2" Style="{StaticResource PlainButton}" Content="Add" Command="{Binding AddFeedCommand}" Margin="12,4,0,4" />
-        <DockPanel Grid.Row="28" Grid.Column="1" Grid.ColumnSpan="2" LastChildFill="True">
+        <Button    Grid.Row="29" Grid.Column="2" Style="{StaticResource PlainButton}" Content="Add" Command="{Binding AddFeedCommand}" Margin="12,4,0,4" />
+        <DockPanel Grid.Row="30" Grid.Column="1" Grid.ColumnSpan="2" LastChildFill="True">
             <Button DockPanel.Dock="Right" Style="{StaticResource PlainButton}" Content="Restore default feeds" Command="{Binding RestoreDefaultFeedsCommand}"
                     Margin="12,2,0,6" VerticalAlignment="Top" ToolTip="Adds back any shipped feed you removed. Feeds you edited or added are left alone." />
             <TextBlock Style="{StaticResource Note}"
                        Text="Feeds are stored in %LocalAppData%\BtcWidget\feeds.json: edit it to change URLs, sector or country tags, reorder, or set a badge colour. Tags: country code, plus language when not English (ko, ja, de). Right-click a headline to copy its link, visit the site or hide that source." />
         </DockPanel>
 
-        <Button Grid.Row="29" Grid.Column="1" Grid.ColumnSpan="2" Content="Close" IsDefault="True" IsCancel="True"
+        <Button Grid.Row="31" Grid.Column="1" Grid.ColumnSpan="2" Content="Close" IsDefault="True" IsCancel="True"
                 HorizontalAlignment="Right" Padding="18,5" Margin="0,16,0,0" />
     </Grid>
     </ScrollViewer>

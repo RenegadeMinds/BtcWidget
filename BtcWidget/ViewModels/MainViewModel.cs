@@ -35,6 +35,17 @@ public sealed partial class MainViewModel : ObservableObject, ITooltipPolicy
     [ObservableProperty] private int _alertPollMinutes;
     [ObservableProperty] private int _restoreAfterMinutes;
     [ObservableProperty] private bool _restoreOnAlert;
+    /// <summary>Mirrors the HKCU Run entry; the registry is the truth.</summary>
+    [ObservableProperty] private bool _startWithWindows;
+    [ObservableProperty] private string _closeButtonAction;
+    [ObservableProperty] private bool _checkForUpdates;
+    /// <summary>A newer release exists on GitHub (lights the ? button).</summary>
+    [ObservableProperty] private bool _hasUpdate;
+    public string? LatestVersion => _settings.LatestVersion;
+    public string? LatestUrl => _settings.LatestUrl;
+    public string AboutTooltip => HasUpdate ? $"About · version {LatestVersion} is available" : "About";
+    public IReadOnlyList<ProviderOption> CloseOptions { get; } =
+        [new ProviderOption("exit", "Exits the widget", ""), new ProviderOption("minimize", "Minimizes the widget", "")];
     [ObservableProperty] private double _windowWidth;
     [ObservableProperty] private bool _showDetails;
     [ObservableProperty] private double _listHeight;
@@ -80,6 +91,7 @@ public sealed partial class MainViewModel : ObservableObject, ITooltipPolicy
     public event Action<Guid?>? AlertsRequested;
     /// <summary>Toggle the news popup.</summary>
     public event Action? NewsRequested;
+    public event Action? AboutRequested;
     /// <summary>Bring the widget back from minimized without taking focus (an alert fired, or the restore timer).</summary>
     public event Action? RestoreRequested;
     /// <summary>Show an article (url, title) in the built-in reader window.</summary>
@@ -148,6 +160,11 @@ public sealed partial class MainViewModel : ObservableObject, ITooltipPolicy
         _alertPollMinutes = settings.AlertPollMinutes;
         _restoreAfterMinutes = settings.RestoreAfterMinutes;
         _restoreOnAlert = settings.RestoreOnAlert;
+        _closeButtonAction = settings.CloseButtonAction;
+        _checkForUpdates = settings.CheckForUpdates;
+        _startWithWindows = prices is not null && StartupManager.IsEnabled();
+        if (_startWithWindows) StartupManager.RepairPath();
+        if (settings.LatestVersion is { } lv && UpdateChecker.TryParse(lv, out var latest)) _hasUpdate = latest > UpdateChecker.Current;
         _windowWidth = settings.Width;
         _showDetails = settings.ShowDetails;
         _listHeight = settings.ListHeight;
@@ -567,7 +584,29 @@ public sealed partial class MainViewModel : ObservableObject, ITooltipPolicy
     }
 
     [RelayCommand] private void Minimize() => MinimizeRequested?.Invoke();
-    [RelayCommand] private void Close() => CloseRequested?.Invoke();
+    /// <summary>The title-bar X: exit, or minimize when Settings says so (the tray menu always has Exit).</summary>
+    [RelayCommand] private void Close()
+    {
+        if (CloseButtonAction == "minimize") MinimizeRequested?.Invoke(); else CloseRequested?.Invoke();
+    }
+    [RelayCommand] private void OpenAbout() => AboutRequested?.Invoke();
+
+    /// <summary>Store the result of an update check (manual or daily) and light the ? button if it is newer.</summary>
+    public void RecordUpdateCheck(UpdateInfo? info)
+    {
+        _settings.LastUpdateCheck = DateTimeOffset.UtcNow;
+        if (info is not null)
+        {
+            _settings.LatestVersion = info.Latest.ToString(3);
+            _settings.LatestUrl = info.Url;
+            HasUpdate = info.IsNewer;
+            OnPropertyChanged(nameof(LatestVersion));
+            OnPropertyChanged(nameof(LatestUrl));
+        }
+        Changed();
+    }
+
+    partial void OnHasUpdateChanged(bool value) => OnPropertyChanged(nameof(AboutTooltip));
     [RelayCommand] private void OpenSettings() => SettingsRequested?.Invoke();
     [RelayCommand] private void ManageLines() => ManageLinesRequested?.Invoke();
     [RelayCommand] private void OpenAlerts() => AlertsRequested?.Invoke(null);
@@ -613,6 +652,13 @@ public sealed partial class MainViewModel : ObservableObject, ITooltipPolicy
         RefreshStatus();
         Changed();
     }
+    partial void OnStartWithWindowsChanged(bool value)
+    {
+        if (_prices is null) return;
+        if (!StartupManager.Set(value)) Status = "Could not change the Windows startup entry";
+    }
+    partial void OnCloseButtonActionChanged(string value) { _settings.CloseButtonAction = value; Changed(); }
+    partial void OnCheckForUpdatesChanged(bool value) { _settings.CheckForUpdates = value; Changed(); }
     partial void OnRestoreAfterMinutesChanged(int value) { _settings.RestoreAfterMinutes = Math.Max(0, value); Changed(); }
     partial void OnRestoreOnAlertChanged(bool value) { _settings.RestoreOnAlert = value; Changed(); }
     partial void OnAlertPollMinutesChanged(int value)
