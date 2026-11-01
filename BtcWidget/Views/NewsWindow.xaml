@@ -1,0 +1,191 @@
+<Window x:Class="BtcWidget.Views.NewsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:BtcWidget.ViewModels"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=vm:NewsViewModel, IsDesignTimeCreatable=True}"
+        Title="News"
+        Width="420" Height="380" MinWidth="300" MinHeight="200"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent" ResizeMode="CanResize"
+        ShowInTaskbar="False" ShowActivated="True"
+        FontFamily="Segoe UI Variable, Segoe UI"
+        TextOptions.TextFormattingMode="Display" UseLayoutRounding="True"
+        d:Width="420" d:Height="380">
+
+    <!--
+        Headline popup. One merged list, newest first, a date separator wherever the day changes. Rows are
+        source badge · title · time. Bright = newer than the last time the popup was open. It closes when it
+        loses focus or on Escape; drag the edges to resize (the size is remembered).
+    -->
+    <Window.Resources>
+        <Style TargetType="ScrollBar" BasedOn="{StaticResource ThinScrollBar}" />
+        <Style x:Key="Small" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="FontSize" Value="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=FontSize, Converter={StaticResource Scale}, ConverterParameter=0.8}" />
+        </Style>
+        <Style TargetType="ComboBox" BasedOn="{StaticResource DarkComboBox}">
+            <Setter Property="FontSize" Value="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=FontSize, Converter={StaticResource Scale}, ConverterParameter=0.85}" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="6,1,22,1" />
+        </Style>
+
+        <!-- Pin: a toggle drawn like the icon buttons, accent when on -->
+        <Style x:Key="PinToggle" TargetType="ToggleButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+            <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+            <Setter Property="Padding" Value="4" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource HoverBrush}" />
+                                <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- Filter box: dark field with a hint while empty and a clear button while not -->
+        <Style x:Key="FilterBox" TargetType="TextBox">
+            <Setter Property="Background" Value="{StaticResource FieldBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource FieldBorderBrush}" />
+            <Setter Property="CaretBrush" Value="{StaticResource TextBrush}" />
+            <Setter Property="Padding" Value="6,2,20,2" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="FontSize" Value="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=FontSize, Converter={StaticResource Scale}, ConverterParameter=0.85}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="4">
+                            <Grid>
+                                <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center" />
+                                <TextBlock x:Name="Hint" Text="filter: bitcoin, gold, bank" Foreground="{StaticResource MutedBrush}" Margin="7,0,0,0"
+                                           VerticalAlignment="Center" IsHitTestVisible="False" Visibility="Collapsed" />
+                                <Button x:Name="Clear" Style="{StaticResource IconButton}" Content="&#xE894;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                        Command="{Binding ClearFilterCommand}" ToolTip="Clear filter" HorizontalAlignment="Right" Padding="4,2" Margin="0,0,1,0"
+                                        FontSize="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=FontSize, Converter={StaticResource Scale}, ConverterParameter=0.6}" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="Text" Value="">
+                                <Setter TargetName="Hint" Property="Visibility" Value="Visible" />
+                                <Setter TargetName="Clear" Property="Visibility" Value="Collapsed" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Date separator -->
+        <DataTemplate DataType="{x:Type vm:NewsDateHeader}">
+            <DockPanel Margin="4,8,4,2" LastChildFill="True">
+                <TextBlock DockPanel.Dock="Left" Text="{Binding Text}" Style="{StaticResource Small}" FontWeight="SemiBold" Margin="0,0,8,0" />
+                <Rectangle Height="1" Fill="{StaticResource FieldBorderBrush}" VerticalAlignment="Center" />
+            </DockPanel>
+        </DataTemplate>
+
+        <!-- Headline -->
+        <DataTemplate DataType="{x:Type vm:NewsItemViewModel}">
+            <Button Style="{StaticResource IconButton}" Command="{Binding OpenCommand}" HorizontalContentAlignment="Stretch"
+                    Padding="4,3" ToolTip="{Binding Tooltip}">
+                <Button.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Open" Command="{Binding OpenCommand}" />
+                        <MenuItem Header="{Binding AltOpenHeader}" Command="{Binding AltOpenCommand}" />
+                        <MenuItem Header="Copy link" Command="{Binding CopyLinkCommand}" />
+                        <Separator />
+                        <MenuItem Header="{Binding VisitHeader}" Command="{Binding VisitSourceCommand}" />
+                        <MenuItem Header="{Binding HideHeader}" Command="{Binding HideSourceCommand}" />
+                    </ContextMenu>
+                </Button.ContextMenu>
+                <DockPanel LastChildFill="True">
+                    <!-- Source badge: two letters on the feed's colour -->
+                    <Border DockPanel.Dock="Left" Background="{Binding BadgeBrush}" CornerRadius="3" Margin="0,0,8,0" VerticalAlignment="Center"
+                            Width="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=FontSize, Converter={StaticResource Scale}, ConverterParameter=1.7}"
+                            Height="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=FontSize, Converter={StaticResource Scale}, ConverterParameter=1.35}">
+                        <TextBlock Text="{Binding Badge}" Foreground="#FFFFFFFF" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   FontSize="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=FontSize, Converter={StaticResource Scale}, ConverterParameter=0.7}" />
+                    </Border>
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding TimeText}" Style="{StaticResource Small}" Margin="10,0,0,0" />
+                    <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsNew}" Value="True">
+                                        <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </DockPanel>
+            </Button>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Border CornerRadius="10" BorderThickness="1" Margin="6" BorderBrush="{StaticResource FieldBorderBrush}">
+        <Border.Background>
+            <SolidColorBrush Color="{StaticResource PanelColor}" Opacity="0.97" />
+        </Border.Background>
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="12" ShadowDepth="0" Opacity="0.5" />
+        </Border.Effect>
+
+        <Grid Margin="10,6,8,8" TextElement.Foreground="{StaticResource TextBrush}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Header: title · text filter · source filter · pin · refresh · settings · close. Drag the title to move the popup. -->
+            <DockPanel Grid.Row="0" LastChildFill="True" Background="Transparent" MouseLeftButtonDown="Header_MouseLeftButtonDown">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <ToggleButton Style="{StaticResource PinToggle}" IsChecked="{Binding IsPinned}" Content="&#xE718;"
+                                  ToolTip="Keep open: stays up when you click elsewhere" />
+                    <Button Style="{StaticResource IconButton}" Command="{Binding RefreshCommand}" ToolTip="Refresh" Content="&#xE72C;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" />
+                    <Button Style="{StaticResource IconButton}" Command="{Binding OpenSettingsCommand}" ToolTip="Feeds and options" Content="&#xE713;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" />
+                    <Button Style="{StaticResource IconButton}" Command="{Binding CloseCommand}" ToolTip="Close" Content="&#xE8BB;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" />
+                </StackPanel>
+                <ComboBox DockPanel.Dock="Right" ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}" MinWidth="100" Margin="6,0,2,0" VerticalAlignment="Center" />
+                <TextBlock DockPanel.Dock="Left" Text="News" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{StaticResource AccentBrush}" Margin="0,0,8,0" />
+                <TextBox x:Name="FilterBox" Style="{StaticResource FilterBox}" Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center"
+                         ToolTip="Only headlines containing any of these words. Separate words with commas; a word may contain spaces." />
+            </DockPanel>
+
+            <!-- Headlines -->
+            <ScrollViewer Grid.Row="1" Margin="0,4,0,2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False" PanningMode="VerticalOnly">
+                <Grid>
+                    <ItemsControl ItemsSource="{Binding Items}" Focusable="False" />
+                    <TextBlock Style="{StaticResource Small}" Text="{Binding Status}" HorizontalAlignment="Center" Margin="0,24"
+                               TextWrapping="Wrap" TextAlignment="Center"
+                               Visibility="{Binding HasItems, Converter={StaticResource BoolToVisibilityInverse}}" />
+                </Grid>
+            </ScrollViewer>
+
+            <!-- Footer -->
+            <TextBlock Grid.Row="2" Style="{StaticResource Small}" Text="{Binding Status}" TextTrimming="CharacterEllipsis" Margin="4,2,0,0"
+                       Visibility="{Binding HasItems, Converter={StaticResource BoolToVisibility}}" />
+        </Grid>
+    </Border>
+</Window>

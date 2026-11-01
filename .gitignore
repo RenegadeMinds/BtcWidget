@@ -1,0 +1,17 @@
+# Build output
+bin/
+obj/
+publish/
+release/
+
+# IDE / local state
+.vs/
+*.user
+*.suo
+*.swp
+.idea/
+
+# Local scratch and logs (never personal data from %LocalAppData%)
+*.log
+*.tmp
+scratch/
