@@ -144,19 +144,8 @@ public sealed class LineConfig
         Enabled = Enabled, Quote = quote, Exchange = Exchange, Alerts = Alerts
     };
 
-    public static List<LineConfig> Defaults() =>
-    [
-        new()
-        {
-            Kind = InstrumentKind.Crypto, Name = "Bitcoin", Symbol = "BTC", CoinId = "bitcoin", ProviderId = "kraken",
-            LogoUrl = "https://coin-images.coingecko.com/coins/images/1/thumb/bitcoin.png"
-        },
-        new()
-        {
-            Kind = InstrumentKind.Crypto, Name = "Bitcoin", Symbol = "BTC", CoinId = "bitcoin", ProviderId = "coingecko",
-            LogoUrl = "https://coin-images.coingecko.com/coins/images/1/thumb/bitcoin.png"
-        }
-    ];
+    /// <summary>The starter lines, from providers.json → defaultLines.</summary>
+    public static List<LineConfig> Defaults() => Services.Providers.DefaultLines.Select(d => d.ToLine()).ToList();
 }
 
 public enum AlertType

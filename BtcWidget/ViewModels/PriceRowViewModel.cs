@@ -16,8 +16,8 @@ public sealed partial class PriceRowViewModel : ObservableObject
     public string Symbol => Line.Symbol;
     public string ProviderName { get; }
     public string ProviderIconUri { get; }
-    /// <summary>Instrument logo when we have one (CoinGecko thumbs), otherwise the provider's badge.</summary>
-    public string LogoUri => Line.LogoUrl ?? ProviderIconUri;
+    /// <summary>Instrument logo when we have one (CoinGecko thumbs, served from the disk cache), otherwise the provider's badge.</summary>
+    public string LogoUri => ImageCache.Local(Line.LogoUrl) ?? ProviderIconUri;
     public string ChangeLabel => Line.IsDaily ? "1d" : "24h";
     public string Label7d => Line.IsDaily ? "1w" : "7d";
     public string Label30d => Line.IsDaily ? "1m" : "30d";
@@ -67,6 +67,7 @@ public sealed partial class PriceRowViewModel : ObservableObject
         ProviderName = providerName;
         ProviderIconUri = providerIconUri;
         _pageUrl = pageUrl;
+        ImageCache.Downloaded += url => { if (url == Line.LogoUrl) OnPropertyChanged(nameof(LogoUri)); };
     }
 
     public PriceRowViewModel(LineConfig line, IPriceSource provider)

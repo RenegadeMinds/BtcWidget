@@ -12,14 +12,15 @@ public sealed class CoinbaseSource(HttpClient http) : IPriceSource
     private HashSet<string>? _products;
 
     public string Id => "coinbase";
-    public string DisplayName => "Coinbase";
-    public string IconUri => "pack://application:,,,/Assets/coinbase.png";
+    private static ProviderConfig Cfg => Providers.Get("coinbase");
+    public string DisplayName => Cfg.Name;
+    public string IconUri => Cfg.IconUri;
     public IReadOnlySet<InstrumentKind> Kinds => _kinds;
 
     /// <summary>Coinbase product id: BTC-USD, ETH-BTC, BTC-EUR.</summary>
     private static string Product(LineConfig line) => $"{line.Symbol.ToUpperInvariant()}-{line.EffectiveQuote}";
 
-    public Uri PageUrl(LineConfig line) => new($"https://www.coinbase.com/advanced-trade/spot/{Product(line)}");
+    public Uri PageUrl(LineConfig line) => Cfg.PageUrl(line, ("product", Product(line)));
 
     private async Task<string> ProductAsync(LineConfig line, CancellationToken ct)
     {
@@ -34,7 +35,7 @@ public sealed class CoinbaseSource(HttpClient http) : IPriceSource
     {
         var product = await ProductAsync(line, ct);
         using var ticker = await http.GetFromJsonAsync<JsonDocument>(
-            $"https://api.exchange.coinbase.com/products/{product}/ticker", ct)
+            Cfg.ApiUrl("ticker", ("product", product)), ct)
             ?? throw new InvalidOperationException("Coinbase returned no body");
         if (Json.Str(ticker.RootElement, "message") is { } msg)
         {
@@ -48,7 +49,7 @@ public sealed class CoinbaseSource(HttpClient http) : IPriceSource
         try
         {
             using var stats = await http.GetFromJsonAsync<JsonDocument>(
-                $"https://api.exchange.coinbase.com/products/{product}/stats", ct);
+                Cfg.ApiUrl("stats", ("product", product)), ct);
             if (stats is not null && stats.RootElement.TryGetProperty("open", out var o))
             {
                 var open = Json.Dec(o); // stats "open" is the price 24h ago
@@ -65,7 +66,7 @@ public sealed class CoinbaseSource(HttpClient http) : IPriceSource
         var product = await ProductAsync(line, ct);
         // Max 300 candles per call; 6h granularity covers ~75 days, enough for the 30d figure.
         using var doc = await http.GetFromJsonAsync<JsonDocument>(
-            $"https://api.exchange.coinbase.com/products/{product}/candles?granularity=21600", ct)
+            Cfg.ApiUrl("candles", ("product", product)), ct)
             ?? throw new InvalidOperationException("Coinbase returned no body");
         if (doc.RootElement.ValueKind != JsonValueKind.Array) return [];
 
@@ -91,7 +92,7 @@ public sealed class CoinbaseSource(HttpClient http) : IPriceSource
         if (_products is not null) return _products;
         try
         {
-            using var doc = await http.GetFromJsonAsync<JsonDocument>("https://api.exchange.coinbase.com/products", ct);
+            using var doc = await http.GetFromJsonAsync<JsonDocument>(Cfg.ApiUrl("products"), ct);
             if (doc is null) return null;
             var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var p in doc.RootElement.EnumerateArray())

@@ -1,0 +1,74 @@
+{
+  "_comment": "Everything about the price providers that can change without a rebuild: names, icons, web page links, API endpoints, the footer links and the two starter lines. Copied to %LocalAppData%\\BtcWidget\\providers.json on first run; edit THAT file. On every start the shipped copy is loaded first and your file is merged over it, so new keys in a new version arrive on their own and your edits win. Placeholders in templates: {symbol} the ticker as typed (TSLA, SHOP.TO, ^GSPC), {base}/{BASE} the ticker lower/upper-cased, {quote}/{QUOTE} the quote currency lower/upper (USD when none), {coinId} the CoinGecko id (bitcoin), {product} BASE-QUOTE, {pair} the provider's own pair id, {nasdaqClass} stocks|etf, {symbolNoCaret} ticker without a leading ^, {query} search text, {id} {vs} {range} as named in the code. Values are URL-escaped when inserted.",
+  "providers": {
+    "kraken": {
+      "name": "Kraken",
+      "icon": "kraken.png",
+      "page": "https://pro.kraken.com/app/trade/{base}-{quote}",
+      "api": {
+        "ticker": "https://api.kraken.com/0/public/Ticker?pair={pair}",
+        "ohlc": "https://api.kraken.com/0/public/OHLC?pair={pair}&interval=60",
+        "assetPairs": "https://api.kraken.com/0/public/AssetPairs"
+      }
+    },
+    "coinbase": {
+      "name": "Coinbase",
+      "icon": "coinbase.png",
+      "page": "https://www.coinbase.com/advanced-trade/spot/{product}",
+      "api": {
+        "ticker": "https://api.exchange.coinbase.com/products/{product}/ticker",
+        "stats": "https://api.exchange.coinbase.com/products/{product}/stats",
+        "candles": "https://api.exchange.coinbase.com/products/{product}/candles?granularity=21600",
+        "products": "https://api.exchange.coinbase.com/products"
+      }
+    },
+    "binance": {
+      "name": "Binance",
+      "icon": "binance.png",
+      "page": "https://www.binance.com/en/trade/{BASE}_{QUOTE}",
+      "api": {
+        "ticker24h": "https://api.binance.com/api/v3/ticker/24hr?symbol={pair}",
+        "klines": "https://api.binance.com/api/v3/klines?symbol={pair}&interval=1h&limit=720"
+      }
+    },
+    "coingecko": {
+      "name": "CoinGecko",
+      "icon": "coingecko.png",
+      "page": "https://www.coingecko.com/en/coins/{coinId}",
+      "api": {
+        "simplePrice": "https://api.coingecko.com/api/v3/simple/price?ids={id}&vs_currencies={vs}&include_24hr_change=true",
+        "supportedVsCurrencies": "https://api.coingecko.com/api/v3/simple/supported_vs_currencies",
+        "search": "https://api.coingecko.com/api/v3/search?query={query}",
+        "markets": "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=25&page=1&sparkline=false"
+      }
+    },
+    "yahoo": {
+      "name": "Yahoo Finance",
+      "icon": "yahoo.png",
+      "page": "https://finance.yahoo.com/quote/{symbol}",
+      "api": {
+        "chart": "https://query2.finance.yahoo.com/v8/finance/chart/{symbol}?range={range}&interval=1d",
+        "search": "https://query2.finance.yahoo.com/v1/finance/search?q={query}&quotesCount=12&newsCount=0&listsCount=0"
+      }
+    },
+    "nasdaq": {
+      "name": "Nasdaq",
+      "icon": "nasdaq.png",
+      "page": "https://www.nasdaq.com/market-activity/{nasdaqClass}/{base}",
+      "api": {
+        "quoteInfo": "https://api.nasdaq.com/api/quote/{symbol}/info?assetclass={assetClass}"
+      }
+    }
+  },
+  "links": [
+    { "name": "CoinGecko",     "icon": "coingecko.png",   "kinds": [ "Crypto" ], "url": "https://www.coingecko.com/en/coins/{coinId}" },
+    { "name": "Kraken",        "icon": "kraken.png",      "kinds": [ "Crypto" ], "url": "https://pro.kraken.com/app/trade/{base}-{quote}" },
+    { "name": "TradingView",   "icon": "tradingview.png", "kinds": [ "Crypto" ], "url": "https://www.tradingview.com/symbols/{BASE}{QUOTE}/" },
+    { "name": "Yahoo Finance", "icon": "yahoo.png",       "kinds": [ "Stock", "Etf", "Index", "Fx", "Commodity" ], "url": "https://finance.yahoo.com/quote/{symbol}" },
+    { "name": "TradingView",   "icon": "tradingview.png", "kinds": [ "Stock", "Etf", "Index", "Fx", "Commodity" ], "url": "https://www.tradingview.com/symbols/{symbolNoCaret}/" }
+  ],
+  "defaultLines": [
+    { "kind": "Crypto", "name": "Bitcoin", "symbol": "BTC", "coinId": "bitcoin", "provider": "kraken",    "logo": "https://coin-images.coingecko.com/coins/images/1/thumb/bitcoin.png" },
+    { "kind": "Crypto", "name": "Bitcoin", "symbol": "BTC", "coinId": "bitcoin", "provider": "coingecko", "logo": "https://coin-images.coingecko.com/coins/images/1/thumb/bitcoin.png" }
+  ]
+}

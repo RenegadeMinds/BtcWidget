@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.4.1 — 2026-11-01
+
+- Fixed: Kraken links opened a 404 page. They now go to `pro.kraken.com/app/trade/<base>-<quote>`.
+- Every provider name, icon, page link, API endpoint, footer link and the starter lines moved out of the
+  code into `Data/providers.json`; quote currencies and fiat symbols into `Data/currencies.json`. Both are
+  copied to `%LocalAppData%\BtcWidget` on first run and your edits are merged over the shipped files on
+  every start.
+- Logos are downloaded once into `%LocalAppData%\BtcWidget\cache` instead of on every launch.
+
 ## 1.4.0 — 2026-11-01
 
 First public release.

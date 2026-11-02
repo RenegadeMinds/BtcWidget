@@ -51,6 +51,8 @@ public partial class App : Application
         }
         _showWait = ThreadPool.RegisterWaitForSingleObject(_showEvent, (_, _) => Dispatcher.BeginInvoke(ShowWindow), null, -1, executeOnlyOnce: false);
 
+        Providers.Load();
+        Currencies.Load();
         _settingsStore = new SettingsStore();
         _settings = _settingsStore.Load();
         _history = new HistoryStore();

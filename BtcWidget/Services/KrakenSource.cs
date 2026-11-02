@@ -11,11 +11,12 @@ public sealed class KrakenSource(HttpClient http) : IPriceSource
     private HashSet<string>? _pairs;
 
     public string Id => "kraken";
-    public string DisplayName => "Kraken";
-    public string IconUri => "pack://application:,,,/Assets/kraken.png";
+    private static ProviderConfig Cfg => Providers.Get("kraken");
+    public string DisplayName => Cfg.Name;
+    public string IconUri => Cfg.IconUri;
     public IReadOnlySet<InstrumentKind> Kinds => _kinds;
 
-    public Uri PageUrl(LineConfig line) => new($"https://www.kraken.com/prices/{line.Symbol.ToLowerInvariant()}");
+    public Uri PageUrl(LineConfig line) => Cfg.PageUrl(line);
 
     /// <summary>Kraken still calls Bitcoin XBT and Doge XDG.</summary>
     private static string Asset(string symbol) => symbol.ToUpperInvariant() switch
@@ -41,7 +42,7 @@ public sealed class KrakenSource(HttpClient http) : IPriceSource
     {
         var pair = await PairAsync(line, ct);
         using var doc = await http.GetFromJsonAsync<JsonDocument>(
-            $"https://api.kraken.com/0/public/Ticker?pair={pair}", ct)
+            Cfg.ApiUrl("ticker", ("pair", pair)), ct)
             ?? throw new InvalidOperationException("Kraken returned no body");
 
         ThrowIfError(doc, line);
@@ -58,7 +59,7 @@ public sealed class KrakenSource(HttpClient http) : IPriceSource
         var pair = await PairAsync(line, ct);
         // interval=60 returns up to 720 hourly candles (~30 days).
         using var doc = await http.GetFromJsonAsync<JsonDocument>(
-            $"https://api.kraken.com/0/public/OHLC?pair={pair}&interval=60", ct)
+            Cfg.ApiUrl("ohlc", ("pair", pair)), ct)
             ?? throw new InvalidOperationException("Kraken returned no body");
 
         ThrowIfError(doc, line);
@@ -86,7 +87,7 @@ public sealed class KrakenSource(HttpClient http) : IPriceSource
         if (_pairs is not null) return _pairs;
         try
         {
-            using var doc = await http.GetFromJsonAsync<JsonDocument>("https://api.kraken.com/0/public/AssetPairs", ct);
+            using var doc = await http.GetFromJsonAsync<JsonDocument>(Cfg.ApiUrl("assetPairs"), ct);
             if (doc is null) return null;
             var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var p in doc.RootElement.GetProperty("result").EnumerateObject())

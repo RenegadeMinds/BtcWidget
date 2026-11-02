@@ -86,8 +86,7 @@ public sealed partial class LinesViewModel : ObservableObject
             Lines.Add(new LineItemViewModel(l, options, (_, _) => { }, (_, _) => { }, () => { }));
         Lines[0].ShowAlerts = true;
         Results.Add(new SearchResultViewModel(new SearchResult(InstrumentKind.Stock, "Shopify Inc.", "SHOP.TO", null, "Toronto", null)));
-        Results.Add(new SearchResultViewModel(new SearchResult(InstrumentKind.Crypto, "XRP", "XRP", "ripple", "#5",
-            "https://coin-images.coingecko.com/coins/images/44/thumb/xrp-symbol-white-128.png") { Quote = "CAD" }));
+        Results.Add(new SearchResultViewModel(new SearchResult(InstrumentKind.Crypto, "XRP", "XRP", "ripple", "#5", null) { Quote = "CAD" }));
         ResultsHeader = "Results for \"s\"";
     }
 
@@ -232,7 +231,7 @@ public sealed partial class LineItemViewModel : ObservableObject
     /// <summary>"BTC/CAD · Crypto", "SHOP.TO · Toronto · Stock".</summary>
     public string Detail => string.Join(" · ", new[] { Line.Kind == InstrumentKind.Crypto ? Line.PairLabel : Line.Symbol, Line.Exchange, KindLabel }
         .Where(s => !string.IsNullOrEmpty(s)));
-    public string LogoUri => Line.LogoUrl ?? SelectedProvider?.IconUri ?? "";
+    public string LogoUri => ImageCache.Local(Line.LogoUrl) ?? SelectedProvider?.IconUri ?? "";
     public IReadOnlyList<ProviderOption> ProviderOptions { get; }
     public IReadOnlyList<QuoteOption> QuoteOptions { get; }
 
@@ -273,6 +272,7 @@ public sealed partial class LineItemViewModel : ObservableObject
         QuoteOptions = QuoteOption.All.Contains(current) ? QuoteOption.All : [.. QuoteOption.All, current];
         _selectedQuote = current;
         foreach (var r in line.Alerts) Alerts.Add(new AlertRuleViewModel(r, line));
+        ImageCache.Downloaded += url => { if (url == Line.LogoUrl) OnPropertyChanged(nameof(LogoUri)); };
         Alerts.CollectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(HasAlerts));
@@ -331,9 +331,16 @@ public sealed class AlertRuleViewModel(AlertRule rule, LineConfig line)
 }
 
 /// <summary>A hit in the right pane.</summary>
-public sealed partial class SearchResultViewModel(SearchResult result) : ObservableObject
+public sealed partial class SearchResultViewModel : ObservableObject
 {
-    public SearchResult Result { get; } = result;
+    public SearchResultViewModel(SearchResult result)
+    {
+        Result = result;
+        // First sight of a logo: the cache downloads it once and tells us; until then the initial letter shows.
+        ImageCache.Downloaded += url => { if (url == Result.LogoUrl) { OnPropertyChanged(nameof(LogoUri)); OnPropertyChanged(nameof(HasLogo)); } };
+    }
+
+    public SearchResult Result { get; }
     public string Name => Result.Name;
     public string Symbol => Result.Symbol;
     /// <summary>"BTC/CAD · #1", "SHOP.TO · Toronto".</summary>
@@ -346,8 +353,8 @@ public sealed partial class SearchResultViewModel(SearchResult result) : Observa
         }
     }
     public string KindLabel => Kinds.Label(Result.Kind);
-    public string? LogoUri => Result.LogoUrl;
-    public bool HasLogo => Result.LogoUrl is not null;
+    public string? LogoUri => ImageCache.Local(Result.LogoUrl);
+    public bool HasLogo => LogoUri is not null;
     /// <summary>First letter, shown when there is no logo.</summary>
     public string Initial => Result.Symbol.TrimStart('^').Length > 0 ? Result.Symbol.TrimStart('^')[..1] : "?";
 

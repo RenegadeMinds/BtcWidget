@@ -32,8 +32,8 @@ public sealed class PriceService : IDisposable
 
     public IReadOnlyDictionary<string, IPriceSource> Sources => _sources;
 
-    /// <summary>Quote assets offered in the dialogs. Anything else can still be typed as "BTC/XYZ" in the search box.</summary>
-    public static readonly string[] CommonQuotes = ["USD", "CAD", "EUR", "GBP", "AUD", "JPY", "CHF", "BTC", "ETH", "USDT"];
+    /// <summary>Quote assets offered in the dialogs (currencies.json). Anything else can still be typed as "BTC/XYZ".</summary>
+    public static IReadOnlyList<string> CommonQuotes => Currencies.Quotes;
 
     public PriceService(HistoryStore history, TimeSpan interval)
     {

@@ -11,11 +11,12 @@ public sealed class CoinGeckoSource(HttpClient http) : IPriceSource, IInstrument
     private HashSet<string>? _vsCurrencies;
 
     public string Id => "coingecko";
-    public string DisplayName => "CoinGecko";
-    public string IconUri => "pack://application:,,,/Assets/coingecko.png";
+    private static ProviderConfig Cfg => Providers.Get("coingecko");
+    public string DisplayName => Cfg.Name;
+    public string IconUri => Cfg.IconUri;
     public IReadOnlySet<InstrumentKind> Kinds => _kinds;
 
-    public Uri PageUrl(LineConfig line) => new($"https://www.coingecko.com/en/coins/{CoinId(line)}");
+    public Uri PageUrl(LineConfig line) => Cfg.PageUrl(line, ("coinId", CoinId(line)));
 
     /// <summary>CoinGecko ids for common symbols, for lines that arrived without one (cross-rate legs, migrated settings).</summary>
     private static readonly Dictionary<string, string> KnownIds = new(StringComparer.OrdinalIgnoreCase)
@@ -43,7 +44,7 @@ public sealed class CoinGeckoSource(HttpClient http) : IPriceSource, IInstrument
         var id = CoinId(line);
         var vs = await VsAsync(line, ct);
         using var doc = await http.GetFromJsonAsync<JsonDocument>(
-            $"https://api.coingecko.com/api/v3/simple/price?ids={Uri.EscapeDataString(id)}&vs_currencies={vs}&include_24hr_change=true", ct)
+            Cfg.ApiUrl("simplePrice", ("id", id), ("vs", vs)), ct)
             ?? throw new InvalidOperationException("CoinGecko returned no body");
 
         if (!doc.RootElement.TryGetProperty(id, out var coin) || !coin.TryGetProperty(vs, out var p))
@@ -66,7 +67,7 @@ public sealed class CoinGeckoSource(HttpClient http) : IPriceSource, IInstrument
         if (_vsCurrencies is not null) return _vsCurrencies;
         try
         {
-            var list = await http.GetFromJsonAsync<string[]>("https://api.coingecko.com/api/v3/simple/supported_vs_currencies", ct);
+            var list = await http.GetFromJsonAsync<string[]>(Cfg.ApiUrl("supportedVsCurrencies"), ct);
             return list is null ? null : _vsCurrencies = new HashSet<string>(list, StringComparer.OrdinalIgnoreCase);
         }
         catch
@@ -80,7 +81,7 @@ public sealed class CoinGeckoSource(HttpClient http) : IPriceSource, IInstrument
     public async Task<IReadOnlyList<SearchResult>> SearchAsync(string query, CancellationToken ct)
     {
         using var doc = await http.GetFromJsonAsync<JsonDocument>(
-            $"https://api.coingecko.com/api/v3/search?query={Uri.EscapeDataString(query)}", ct);
+            Cfg.ApiUrl("search", ("query", query)), ct);
         if (doc is null) return [];
 
         var list = new List<SearchResult>();
@@ -100,7 +101,7 @@ public sealed class CoinGeckoSource(HttpClient http) : IPriceSource, IInstrument
     public async Task<IReadOnlyList<SearchResult>> PopularAsync(CancellationToken ct)
     {
         using var doc = await http.GetFromJsonAsync<JsonDocument>(
-            "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=25&page=1&sparkline=false", ct);
+            Cfg.ApiUrl("markets"), ct);
         if (doc is null) return [];
 
         var list = new List<SearchResult>();

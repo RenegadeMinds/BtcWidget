@@ -108,6 +108,9 @@ when one is out. Nothing else ever phones home.
 |---|---|
 | `settings.json` | Everything in Settings, window position, your lines (each with its alerts), the last update check |
 | `feeds.json` | Your news feeds: `id`, `name`, `sector`, `country`, optional `lang`, `url`, `site`, `enabled`, optional `color` (`#RRGGBB` badge). Seeded from the shipped list on first run, then yours to edit by hand or in Settings |
+| `providers.json` | Everything about the price providers that can change: names, icons, the web page each click opens, API endpoints, the footer links, the two starter lines. Your edits are merged over the shipped file on every start, so new versions bring fixes and your changes survive |
+| `currencies.json` | Quote currencies offered in the dropdowns and the symbol shown for each fiat currency. Same merge rule |
+| `cache\` | Downloaded logos, one file each, fetched once and reused. Safe to delete |
 | `history.db` | SQLite, every reading, used for the sparklines, 7d / 30d and 30-day high / low |
 | `alerts.log` | One line per fired alert |
 | `webview\` | Profile of the built-in reader. Only exists once you have used it; safe to delete |
@@ -155,6 +158,16 @@ All are public endpoints with no key. They are polled hourly by default (every 5
 alert), which is well inside every provider's unauthenticated limits. Stooq, Alpha Vantage, Finnhub, Twelve
 Data, Polygon, FRED and CoinCap were considered and skipped: they need a key or sit behind a browser check.
 
+## Provider links and endpoints
+
+Nothing about an external site is hardcoded. `providers.json` holds, per provider, the display name, icon,
+the page a click opens (`"page": "https://pro.kraken.com/app/trade/{base}-{quote}"`) and each API endpoint,
+all as templates with placeholders (`{symbol}`, `{base}`, `{BASE}`, `{quote}`, `{QUOTE}`, `{coinId}`,
+`{product}`, `{pair}`, …; the file's `_comment` lists them). The footer links and the two starter lines are
+there too. When a site changes its URL scheme, fix the template in your `%LocalAppData%\BtcWidget\providers.json`
+and it takes effect at the next start; fix it in `Data/providers.json` for everyone. Logos are downloaded
+once into `%LocalAppData%\BtcWidget\cache` and served from there.
+
 ## News feeds
 
 The shipped list is [`BtcWidget/Data/feeds.json`](BtcWidget/Data/feeds.json): 134 feeds, every URL
@@ -173,8 +186,8 @@ older than 48 hours are dropped.
 | Folder | Purpose |
 |---|---|
 | `Models/` | `AppSettings` + `LineConfig` (persisted), `NewsFeed` (one feeds.json entry), `PricePoint` / `PriceQuote` / `SearchResult` |
-| `Data/` | `feeds.json`, the starter feed list. Copied beside the exe and embedded in the assembly |
-| `Services/` | `IPriceSource` + `IInstrumentSearch` and the six `*Source` providers; `PriceService` (per-line poll loop, derived prices, search fan-out); `HistoryStore` (SQLite); `PriceAnalysis`; `AlertEngine`; `AlertLog`; `NewsService` (RSS / Atom fetch, parse, merge); `FeedStore` (feeds.json); `TrayIcon` (Shell_NotifyIcon, balloon notifications); `HotkeyManager`; `SettingsStore`; `MemoryDiagnostics` |
+| `Data/` | `feeds.json`, `providers.json`, `currencies.json`: every external URL, name and list the app uses. Data, not code. Copied beside the exe and embedded in the assembly; the user's copies in `%LocalAppData%` override them |
+| `Services/` | `IPriceSource` + `IInstrumentSearch` and the six `*Source` providers; `PriceService` (per-line poll loop, derived prices, search fan-out); `HistoryStore` (SQLite); `PriceAnalysis`; `AlertEngine`; `AlertLog`; `NewsService` (RSS / Atom fetch, parse, merge); `FeedStore` (feeds.json); `ProviderData` (providers.json / currencies.json loader, URL templates); `ImageCache` (logo files); `TrayIcon` (Shell_NotifyIcon, balloon notifications); `HotkeyManager`; `SettingsStore`; `MemoryDiagnostics` |
 | `ViewModels/` | `MainViewModel` (widget + settings + alert dispatch + news state), `PriceRowViewModel`, `LinesViewModel`, `AlertsViewModel`, `NewsViewModel`, `NewsFeedOption` / `NewsFeedGroup`, `LinkViewModel` |
 | `Views/` | `MainWindow` (the widget), `LinesWindow`, `AlertsWindow`, `NewsWindow` (popup), `ReaderWindow` (WebView2), `SettingsWindow` |
 | `Controls/` | `Sparkline` |

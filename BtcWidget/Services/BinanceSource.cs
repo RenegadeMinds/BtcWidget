@@ -11,14 +11,15 @@ public sealed class BinanceSource(HttpClient http) : IPriceSource
     private static readonly HashSet<InstrumentKind> _kinds = [InstrumentKind.Crypto];
 
     public string Id => "binance";
-    public string DisplayName => "Binance";
-    public string IconUri => "pack://application:,,,/Assets/binance.png";
+    private static ProviderConfig Cfg => Providers.Get("binance");
+    public string DisplayName => Cfg.Name;
+    public string IconUri => Cfg.IconUri;
     public IReadOnlySet<InstrumentKind> Kinds => _kinds;
 
     private static string QuoteAsset(LineConfig line) => line.EffectiveQuote == "USD" ? "USDT" : line.EffectiveQuote;
     private static string Pair(LineConfig line) => line.Symbol.ToUpperInvariant() + QuoteAsset(line);
 
-    public Uri PageUrl(LineConfig line) => new($"https://www.binance.com/en/trade/{line.Symbol.ToUpperInvariant()}_{QuoteAsset(line)}");
+    public Uri PageUrl(LineConfig line) => Cfg.PageUrl(line, ("QUOTE", QuoteAsset(line)), ("quote", QuoteAsset(line).ToLowerInvariant()));
 
     /// <summary>GET that reads the JSON body even on 4xx: Binance reports an unknown pair as 400 + {"code":-1121}.</summary>
     private async Task<JsonDocument> GetAsync(string url, LineConfig line, CancellationToken ct)
@@ -34,7 +35,7 @@ public sealed class BinanceSource(HttpClient http) : IPriceSource
 
     public async Task<PriceQuote> GetQuoteAsync(LineConfig line, CancellationToken ct)
     {
-        using var doc = await GetAsync($"https://api.binance.com/api/v3/ticker/24hr?symbol={Pair(line)}", line, ct);
+        using var doc = await GetAsync(Cfg.ApiUrl("ticker24h", ("pair", Pair(line))), line, ct);
 
         var price = Json.Dec(doc.RootElement.GetProperty("lastPrice"));
         var change = Json.Pct(doc.RootElement.GetProperty("priceChangePercent"));
@@ -43,7 +44,7 @@ public sealed class BinanceSource(HttpClient http) : IPriceSource
 
     public async Task<IReadOnlyList<PricePoint>> GetHistoryAsync(LineConfig line, CancellationToken ct)
     {
-        using var doc = await GetAsync($"https://api.binance.com/api/v3/klines?symbol={Pair(line)}&interval=1h&limit=720", line, ct);
+        using var doc = await GetAsync(Cfg.ApiUrl("klines", ("pair", Pair(line))), line, ct);
         if (doc.RootElement.ValueKind != JsonValueKind.Array) return [];
 
         var list = new List<PricePoint>(doc.RootElement.GetArrayLength());

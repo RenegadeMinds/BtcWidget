@@ -285,27 +285,16 @@ public sealed partial class MainViewModel : ObservableObject, ITooltipPolicy
         Changed();
     }
 
+    /// <summary>Footer links follow the first line; which links and their URL templates come from providers.json.</summary>
     private void BuildLinks()
     {
         Links.Clear();
-        var first = _settings.Lines.FirstOrDefault(l => l.Enabled);
-        var symbol = first?.Symbol ?? "BTC";
-        if (first is null || first.Kind == InstrumentKind.Crypto)
+        var first = _settings.Lines.FirstOrDefault(l => l.Enabled)
+                    ?? new LineConfig { Kind = InstrumentKind.Crypto, Name = "Bitcoin", Symbol = "BTC", CoinId = "bitcoin" };
+        foreach (var link in Providers.Links.Where(l => l.Kinds.Contains(first.Kind)))
         {
-            var coinId = first?.CoinId ?? "bitcoin";
-            Links.Add(new LinkViewModel("CoinGecko", "pack://application:,,,/Assets/coingecko.png",
-                new Uri($"https://www.coingecko.com/en/coins/{coinId}")));
-            Links.Add(new LinkViewModel("Kraken", "pack://application:,,,/Assets/kraken.png",
-                new Uri($"https://www.kraken.com/prices/{symbol.ToLowerInvariant()}")));
-            Links.Add(new LinkViewModel("TradingView", "pack://application:,,,/Assets/tradingview.png",
-                new Uri($"https://www.tradingview.com/symbols/{symbol}{first?.EffectiveQuote ?? "USD"}/")));
-        }
-        else
-        {
-            Links.Add(new LinkViewModel("Yahoo Finance", "pack://application:,,,/Assets/yahoo.png",
-                new Uri($"https://finance.yahoo.com/quote/{Uri.EscapeDataString(symbol)}")));
-            Links.Add(new LinkViewModel("TradingView", "pack://application:,,,/Assets/tradingview.png",
-                new Uri($"https://www.tradingview.com/symbols/{Uri.EscapeDataString(symbol.TrimStart('^'))}/")));
+            try { Links.Add(new LinkViewModel(link.Name, link.IconUri, new Uri(UrlTemplate.Fill(link.Url, first)))); }
+            catch (UriFormatException) { /* a bad template in the user's providers.json: skip that link */ }
         }
     }
 

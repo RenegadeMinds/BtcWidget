@@ -11,18 +11,18 @@ public sealed class NasdaqSource(HttpClient http) : IPriceSource
     private static readonly HashSet<InstrumentKind> _kinds = [InstrumentKind.Stock, InstrumentKind.Etf];
 
     public string Id => "nasdaq";
-    public string DisplayName => "Nasdaq";
-    public string IconUri => "pack://application:,,,/Assets/nasdaq.png";
+    private static ProviderConfig Cfg => Providers.Get("nasdaq");
+    public string DisplayName => Cfg.Name;
+    public string IconUri => Cfg.IconUri;
     public IReadOnlySet<InstrumentKind> Kinds => _kinds;
 
-    public Uri PageUrl(LineConfig line) =>
-        new($"https://www.nasdaq.com/market-activity/{(line.Kind == InstrumentKind.Etf ? "etf" : "stocks")}/{line.Symbol.ToLowerInvariant()}");
+    public Uri PageUrl(LineConfig line) => Cfg.PageUrl(line);
 
     public async Task<PriceQuote> GetQuoteAsync(LineConfig line, CancellationToken ct)
     {
         var assetClass = line.Kind == InstrumentKind.Etf ? "etf" : "stocks";
         using var doc = await http.GetFromJsonAsync<JsonDocument>(
-            $"https://api.nasdaq.com/api/quote/{Uri.EscapeDataString(line.Symbol)}/info?assetclass={assetClass}", ct)
+            Cfg.ApiUrl("quoteInfo", ("symbol", line.Symbol), ("assetClass", assetClass)), ct)
             ?? throw new InvalidOperationException("Nasdaq returned no body");
 
         var root = doc.RootElement;

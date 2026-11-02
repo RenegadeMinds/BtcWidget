@@ -10,7 +10,7 @@
     <RootNamespace>BtcWidget</RootNamespace>
     <AssemblyName>BtcWidget</AssemblyName>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
-    <Version>1.4.0</Version>
+    <Version>1.4.1</Version>
     <Product>BtcWidget</Product>
     <AssemblyTitle>BtcWidget</AssemblyTitle>
     <Description>Always-available desktop widget for crypto and stock prices, alerts and news.</Description>
@@ -44,7 +44,7 @@
     <!-- Starter data, copied beside the exe and also embedded (so a single-file exe needs no folder);
          the user's copy lives in %LocalAppData%\BtcWidget -->
     <None Include="Data\*.json" CopyToOutputDirectory="PreserveNewest" />
-    <EmbeddedResource Include="Data\feeds.json" LogicalName="BtcWidget.Data.feeds.json" />
+    <EmbeddedResource Include="Data\*.json" LogicalName="BtcWidget.Data.%(Filename)%(Extension)" />
   </ItemGroup>
 
 </Project>

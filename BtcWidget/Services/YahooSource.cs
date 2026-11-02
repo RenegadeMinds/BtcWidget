@@ -17,15 +17,16 @@ public sealed class YahooSource(HttpClient http) : IPriceSource, IInstrumentSear
         [InstrumentKind.Stock, InstrumentKind.Etf, InstrumentKind.Index, InstrumentKind.Fx, InstrumentKind.Commodity, InstrumentKind.Crypto];
 
     public string Id => "yahoo";
-    public string DisplayName => "Yahoo Finance";
-    public string IconUri => "pack://application:,,,/Assets/yahoo.png";
+    private static ProviderConfig Cfg => Providers.Get("yahoo");
+    public string DisplayName => Cfg.Name;
+    public string IconUri => Cfg.IconUri;
     public IReadOnlySet<InstrumentKind> Kinds => _kinds;
 
     /// <summary>Yahoo's symbol for the line: crypto pairs are BTC-CAD, everything else is used as typed.</summary>
     private static string YSymbol(LineConfig line) =>
         line.Kind == InstrumentKind.Crypto ? $"{line.Symbol.ToUpperInvariant()}-{line.EffectiveQuote}" : line.Symbol;
 
-    public Uri PageUrl(LineConfig line) => new($"https://finance.yahoo.com/quote/{Uri.EscapeDataString(YSymbol(line))}");
+    public Uri PageUrl(LineConfig line) => Cfg.PageUrl(line, ("symbol", YSymbol(line)));
 
     public async Task<PriceQuote> GetQuoteAsync(LineConfig line, CancellationToken ct)
     {
@@ -100,7 +101,7 @@ public sealed class YahooSource(HttpClient http) : IPriceSource, IInstrumentSear
         CancellationToken ct, LineConfig? line = null)
     {
         using var resp = await http.GetAsync(
-            $"https://query2.finance.yahoo.com/v8/finance/chart/{Uri.EscapeDataString(symbol)}?range={range}&interval=1d", ct);
+            Cfg.ApiUrl("chart", ("symbol", symbol), ("range", range)), ct);
         JsonDocument doc;
         try { doc = await JsonDocument.ParseAsync(await resp.Content.ReadAsStreamAsync(ct), cancellationToken: ct); }
         catch (JsonException) { throw new InvalidOperationException($"Yahoo: HTTP {(int)resp.StatusCode}"); }
@@ -140,7 +141,7 @@ public sealed class YahooSource(HttpClient http) : IPriceSource, IInstrumentSear
     public async Task<IReadOnlyList<SearchResult>> SearchAsync(string query, CancellationToken ct)
     {
         using var doc = await http.GetFromJsonAsync<JsonDocument>(
-            $"https://query2.finance.yahoo.com/v1/finance/search?q={Uri.EscapeDataString(query)}&quotesCount=12&newsCount=0&listsCount=0", ct);
+            Cfg.ApiUrl("search", ("query", query)), ct);
         if (doc is null || !doc.RootElement.TryGetProperty("quotes", out var quotes)) return [];
 
         var list = new List<SearchResult>();
