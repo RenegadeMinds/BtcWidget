@@ -107,6 +107,17 @@ public sealed class DefaultLine
     };
 }
 
+/// <summary>One spot metal, from providers.json → metals.</summary>
+public sealed class MetalConfig
+{
+    public string Symbol { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string Slug { get; set; } = "";
+    public string? Kitco { get; set; }
+    public string? Futures { get; set; }
+    public List<string> Providers { get; set; } = [];
+}
+
 /// <summary>One provider's entry in providers.json.</summary>
 public sealed class ProviderConfig
 {
@@ -134,6 +145,7 @@ public static class Providers
     private static Dictionary<string, ProviderConfig> _providers = new(StringComparer.OrdinalIgnoreCase);
     public static IReadOnlyList<LinkConfig> Links { get; private set; } = [];
     public static IReadOnlyList<DefaultLine> DefaultLines { get; private set; } = [];
+    public static IReadOnlyList<MetalConfig> Metals { get; private set; } = [];
 
     public static void Load()
     {
@@ -142,6 +154,7 @@ public static class Providers
         _providers = new Dictionary<string, ProviderConfig>(_providers, StringComparer.OrdinalIgnoreCase);
         Links = root["links"] is JsonNode l ? DataFiles.Deserialize<List<LinkConfig>>(l) : [];
         DefaultLines = root["defaultLines"] is JsonNode d ? DataFiles.Deserialize<List<DefaultLine>>(d) : [];
+        Metals = root["metals"] is JsonNode m ? DataFiles.Deserialize<List<MetalConfig>>(m) : [];
     }
 
     public static ProviderConfig Get(string id)

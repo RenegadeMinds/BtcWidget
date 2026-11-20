@@ -53,6 +53,8 @@ public sealed class PriceService : IDisposable
             new BinanceSource(_http),
             _yahoo,
             new NasdaqSource(_http),
+            new KitcoSource(_http, _yahoo),
+            new GoldApiSource(_http, _yahoo),
         ];
         _sources = all.ToDictionary(s => s.Id);
         _searchers = all.OfType<IInstrumentSearch>().ToList();
@@ -218,7 +220,7 @@ public sealed class PriceService : IDisposable
         {
             q = await src.GetQuoteAsync(line, ct);
         }
-        catch (PairNotSupportedException) when (line.Kind == InstrumentKind.Crypto && want != "USD")
+        catch (PairNotSupportedException) when (line.Kind is InstrumentKind.Crypto or InstrumentKind.Metal && want != "USD")
         {
             q = await src.GetQuoteAsync(line.WithQuote("USD"), ct);
         }
@@ -330,7 +332,7 @@ public sealed class PriceService : IDisposable
             pts = await src.GetHistoryAsync(line, ct);
             if (line.Kind == InstrumentKind.Crypto) currency = want;   // a native pair is already in the quote asset
         }
-        catch (PairNotSupportedException) when (line.Kind == InstrumentKind.Crypto && want != "USD")
+        catch (PairNotSupportedException) when (line.Kind is InstrumentKind.Crypto or InstrumentKind.Metal && want != "USD")
         {
             pts = await src.GetHistoryAsync(line.WithQuote("USD"), ct);
             currency = "USD";
@@ -422,9 +424,11 @@ public sealed class PriceService : IDisposable
 
         if (quote is not null)
         {
-            // "BTC/CAD": offer the coins whose ticker is the base, in that quote. Fall back to a plain search.
-            var exact = merged.Where(r => r.Kind == InstrumentKind.Crypto && r.Symbol.Equals(baseQuery, StringComparison.OrdinalIgnoreCase))
-                              .Select(r => r with { Quote = quote }).ToList();
+            // "BTC/CAD", "gold cad": offer the coins / metals whose ticker (or metal name) is the base, in that quote.
+            var exact = merged.Where(r => r.Kind is InstrumentKind.Crypto or InstrumentKind.Metal
+                                          && (r.Symbol.Equals(baseQuery, StringComparison.OrdinalIgnoreCase)
+                                              || r.Kind == InstrumentKind.Metal && r.Name.Equals(baseQuery, StringComparison.OrdinalIgnoreCase)))
+                              .Select(r => r with { Quote = quote }).OrderByDescending(r => Score(r, baseQuery)).ToList();
             if (exact.Count > 0) return exact;
         }
         return merged.OrderByDescending(r => Score(r, q)).ToList();
@@ -435,7 +439,9 @@ public sealed class PriceService : IDisposable
     {
         var s = query.Trim().ToUpperInvariant();
         var parts = s.Split(['/', '-', ' ', ':'], StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length == 2 && parts.All(p => p.Length is >= 2 and <= 6 && p.All(char.IsLetter)) && IsQuoteAsset(parts[1]))
+        // The base may be a word ("palladium cad"); the quote is a short code.
+        if (parts.Length == 2 && parts[0].Length is >= 2 and <= 10 && parts[1].Length is >= 2 and <= 6
+            && parts.All(p => p.All(char.IsLetter)) && IsQuoteAsset(parts[1]))
             return (parts[0], parts[1]);
         if (parts.Length == 1 && s.Length is >= 5 and <= 10 && s.All(char.IsLetter))
         {
@@ -488,6 +494,9 @@ public sealed class PriceService : IDisposable
         else if (r.Name.StartsWith(q, cmp)) score += 40;
         else if (r.Name.Contains(q, cmp)) score += 10;
 
+        // Someone typing "gold" or "silver" here wants the spot price, not a stock that borrowed the word.
+        if (r.Kind == InstrumentKind.Metal) score += 70;
+
         if (r.Kind == InstrumentKind.Crypto)
         {
             // Exchange carries "#rank" for CoinGecko hits.
@@ -513,6 +522,8 @@ public sealed class PriceService : IDisposable
     /// </summary>
     public async Task<string> PickProviderAsync(SearchResult result, CancellationToken ct)
     {
+        if (result.Kind == InstrumentKind.Metal)
+            return Metals.Find(result.Symbol)?.Providers.FirstOrDefault(_sources.ContainsKey) ?? "kitco";
         if (result.Kind != InstrumentKind.Crypto) return "yahoo";
 
         var probe = result.ToLine("");

@@ -90,7 +90,9 @@ public enum InstrumentKind
     Etf,
     Index,
     Fx,
-    Commodity
+    Commodity,
+    /// <summary>Spot precious metals (gold, silver, platinum, palladium): Kitco, gold-api.com.</summary>
+    Metal
 }
 
 public sealed class LineConfig
@@ -125,7 +127,7 @@ public sealed class LineConfig
 
     /// <summary>The quote actually used: the explicit one, else USD for crypto, else "" (the listing currency).</summary>
     [JsonIgnore] public string EffectiveQuote =>
-        Quote.Length > 0 ? Quote.ToUpperInvariant() : Kind == InstrumentKind.Crypto ? "USD" : "";
+        Quote.Length > 0 ? Quote.ToUpperInvariant() : Kind is InstrumentKind.Crypto or InstrumentKind.Metal ? "USD" : "";
 
     /// <summary>"BTC/CAD", "BTC/USD", "SHOP.TO", "SHOP.TO/USD".</summary>
     [JsonIgnore] public string PairLabel => EffectiveQuote.Length > 0 ? $"{Symbol}/{EffectiveQuote}" : Symbol;
@@ -135,7 +137,7 @@ public sealed class LineConfig
     /// "BTC/CAD" otherwise.
     /// </summary>
     [JsonIgnore] public string HistoryKey =>
-        Quote.Length == 0 || (Kind == InstrumentKind.Crypto && EffectiveQuote == "USD") ? Symbol : $"{Symbol}/{EffectiveQuote}";
+        Quote.Length == 0 || (Kind is InstrumentKind.Crypto or InstrumentKind.Metal && EffectiveQuote == "USD") ? Symbol : $"{Symbol}/{EffectiveQuote}";
 
     /// <summary>Copy of this line with another quote; used for the legs of a derived price.</summary>
     public LineConfig WithQuote(string quote) => new()

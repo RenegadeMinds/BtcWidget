@@ -59,6 +59,7 @@ public sealed partial class LinesViewModel : ObservableObject
         new("Indices", InstrumentKind.Index),
         new("FX", InstrumentKind.Fx),
         new("Commodities", InstrumentKind.Commodity),
+        new("Metals", InstrumentKind.Metal),
     ];
     public IReadOnlyList<QuoteOption> QuoteOptions => QuoteOption.All;
 
@@ -229,7 +230,7 @@ public sealed partial class LineItemViewModel : ObservableObject
     public string Symbol => Line.Symbol;
     public string KindLabel => Kinds.Label(Line.Kind);
     /// <summary>"BTC/CAD · Crypto", "SHOP.TO · Toronto · Stock".</summary>
-    public string Detail => string.Join(" · ", new[] { Line.Kind == InstrumentKind.Crypto ? Line.PairLabel : Line.Symbol, Line.Exchange, KindLabel }
+    public string Detail => string.Join(" · ", new[] { Line.Kind is InstrumentKind.Crypto or InstrumentKind.Metal ? Line.PairLabel : Line.Symbol, Line.Exchange, KindLabel }
         .Where(s => !string.IsNullOrEmpty(s)));
     public string LogoUri => ImageCache.Local(Line.LogoUrl) ?? SelectedProvider?.IconUri ?? "";
     public IReadOnlyList<ProviderOption> ProviderOptions { get; }
@@ -371,6 +372,7 @@ internal static class Kinds
         InstrumentKind.Index => "Index",
         InstrumentKind.Fx => "FX",
         InstrumentKind.Commodity => "Commodity",
+        InstrumentKind.Metal => "Metal",
         _ => k.ToString()
     };
 }

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.0 — 2026-11-20
+
+- Spot precious metals: gold, silver, platinum and palladium from Kitco and gold-api.com, in USD, CAD or any
+  other currency (native where the source has it, else USD × FX). New Metals chip in the Lines dialog;
+  `gold`, `xau`, `gold cad` all search. Kitco is the default source for a new metal line.
+- Metal lines backfill history from Yahoo futures (`GC=F`, `SI=F`, `PL=F`, `PA=F`) so sparklines and
+  7d / 30d work immediately.
+- The metals list, codes and providers live in `providers.json` → `metals`.
+
 ## 1.4.1 — 2026-11-01
 
 - Fixed: Kraken links opened a 404 page. They now go to `pro.kraken.com/app/trade/<base>-<quote>`.

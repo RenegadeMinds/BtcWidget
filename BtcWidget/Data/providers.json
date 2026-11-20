@@ -1,5 +1,5 @@
 {
-  "_comment": "Everything about the price providers that can change without a rebuild: names, icons, web page links, API endpoints, the footer links and the two starter lines. Copied to %LocalAppData%\\BtcWidget\\providers.json on first run; edit THAT file. On every start the shipped copy is loaded first and your file is merged over it, so new keys in a new version arrive on their own and your edits win. Placeholders in templates: {symbol} the ticker as typed (TSLA, SHOP.TO, ^GSPC), {base}/{BASE} the ticker lower/upper-cased, {quote}/{QUOTE} the quote currency lower/upper (USD when none), {coinId} the CoinGecko id (bitcoin), {product} BASE-QUOTE, {pair} the provider's own pair id, {nasdaqClass} stocks|etf, {symbolNoCaret} ticker without a leading ^, {query} search text, {id} {vs} {range} as named in the code. Values are URL-escaped when inserted.",
+  "_comment": "Everything about the price providers that can change without a rebuild: names, icons, web page links, API endpoints, the footer links and the two starter lines. Copied to %LocalAppData%\\BtcWidget\\providers.json on first run; edit THAT file. On every start the shipped copy is loaded first and your file is merged over it, so new keys in a new version arrive on their own and your edits win. Placeholders in templates: {symbol} the ticker as typed (TSLA, SHOP.TO, ^GSPC), {base}/{BASE} the ticker lower/upper-cased, {quote}/{QUOTE} the quote currency lower/upper (USD when none), {coinId} the CoinGecko id (bitcoin), {product} BASE-QUOTE, {pair} the provider's own pair id, {nasdaqClass} stocks|etf, {symbolNoCaret} ticker without a leading ^, {query} search text, {id} {vs} {range} {code} as named in the code. metals: spot metals; kitco is Kitco's code, futures the Yahoo contract used to backfill history, providers the sources that carry it (the first is the default for new lines). Values are URL-escaped when inserted.",
   "providers": {
     "kraken": {
       "name": "Kraken",
@@ -51,6 +51,22 @@
         "search": "https://query2.finance.yahoo.com/v1/finance/search?q={query}&quotesCount=12&newsCount=0&listsCount=0"
       }
     },
+    "kitco": {
+      "name": "Kitco",
+      "icon": "kitco.png",
+      "page": "https://www.kitco.com/charts/{coinId}",
+      "api": {
+        "quote": "https://proxy.kitco.com/getPM?symbol={code}&currency={QUOTE}"
+      }
+    },
+    "goldapi": {
+      "name": "gold-api.com",
+      "icon": "goldapi.png",
+      "page": "https://gold-api.com/",
+      "api": {
+        "price": "https://api.gold-api.com/price/{symbol}/{QUOTE}"
+      }
+    },
     "nasdaq": {
       "name": "Nasdaq",
       "icon": "nasdaq.png",
@@ -65,7 +81,15 @@
     { "name": "Kraken",        "icon": "kraken.png",      "kinds": [ "Crypto" ], "url": "https://pro.kraken.com/app/trade/{base}-{quote}" },
     { "name": "TradingView",   "icon": "tradingview.png", "kinds": [ "Crypto" ], "url": "https://www.tradingview.com/symbols/{BASE}{QUOTE}/" },
     { "name": "Yahoo Finance", "icon": "yahoo.png",       "kinds": [ "Stock", "Etf", "Index", "Fx", "Commodity" ], "url": "https://finance.yahoo.com/quote/{symbol}" },
-    { "name": "TradingView",   "icon": "tradingview.png", "kinds": [ "Stock", "Etf", "Index", "Fx", "Commodity" ], "url": "https://www.tradingview.com/symbols/{symbolNoCaret}/" }
+    { "name": "TradingView",   "icon": "tradingview.png", "kinds": [ "Stock", "Etf", "Index", "Fx", "Commodity" ], "url": "https://www.tradingview.com/symbols/{symbolNoCaret}/" },
+    { "name": "Kitco",         "icon": "kitco.png",       "kinds": [ "Metal" ], "url": "https://www.kitco.com/charts/{coinId}" },
+    { "name": "TradingView",   "icon": "tradingview.png", "kinds": [ "Metal" ], "url": "https://www.tradingview.com/symbols/{BASE}{QUOTE}/" }
+  ],
+  "metals": [
+    { "symbol": "XAU", "name": "Gold",      "slug": "gold",      "kitco": "AU", "futures": "GC=F", "providers": [ "kitco", "goldapi" ] },
+    { "symbol": "XAG", "name": "Silver",    "slug": "silver",    "kitco": "AG", "futures": "SI=F", "providers": [ "kitco", "goldapi" ] },
+    { "symbol": "XPT", "name": "Platinum",  "slug": "platinum",  "kitco": "PT", "futures": "PL=F", "providers": [ "kitco", "goldapi" ] },
+    { "symbol": "XPD", "name": "Palladium", "slug": "palladium", "kitco": "PD", "futures": "PA=F", "providers": [ "kitco", "goldapi" ] }
   ],
   "defaultLines": [
     { "kind": "Crypto", "name": "Bitcoin", "symbol": "BTC", "coinId": "bitcoin", "provider": "kraken",    "logo": "https://coin-images.coingecko.com/coins/images/1/thumb/bitcoin.png" },

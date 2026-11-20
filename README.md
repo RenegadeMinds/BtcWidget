@@ -11,9 +11,11 @@ WPF on .NET 10. Windows 10 / 11, x64.
 - **Lines.** Each line is one instrument, from one provider, in one quote currency: Bitcoin on Kraken in
   CAD, ETH/BTC, Shopify on Toronto, IBM shown in CAD, Tesla priced in BTC. Price, change, and under it a
   30-day sparkline, 7d / 30d change and where the price sits in its recent range.
-- **Six price sources, no keys.** Kraken, Coinbase, Binance, CoinGecko, Yahoo Finance, Nasdaq. Stocks on
-  any exchange Yahoo knows (`SHOP.TO`, `005930.KS`, `307.F`), ETFs, indices, FX, futures. When no market
-  quotes a pair directly the price is derived through USD or an FX rate and labelled as such.
+- **Eight price sources, no keys.** Kraken, Coinbase, Binance, CoinGecko, Yahoo Finance, Nasdaq, plus Kitco
+  and gold-api.com for spot gold, silver, platinum and palladium. Stocks on any exchange Yahoo knows
+  (NYSE, NASDAQ, TSX `SHOP.TO`, TSX Venture `.V`, CSE `.CN`, `005930.KS`, `307.F`), ETFs, indices, FX,
+  futures. When no market quotes a pair directly the price is derived through USD or an FX rate and
+  labelled as such.
 - **Alerts.** Price above / below, up / down more than N% in 24h, new 30-day high / low. The row lights up,
   a Windows notification goes out, and the line polls every 5 minutes while it has an alert.
 - **News.** A popup next to the widget with headlines from the feeds you choose, newest first: 134 crypto,
@@ -153,6 +155,15 @@ Dependencies (all NuGet): CommunityToolkit.Mvvm, Microsoft.Data.Sqlite, Microsof
 | `coingecko` | Crypto in ~60 quote currencies | yes | | Aggregator. Fallback when no exchange has the pair; default fallback conversion-rate provider. Supplies coin logos and the popular list. |
 | `yahoo` | Stocks worldwide, ETFs, indices, FX, futures, crypto pairs | yes | 3mo daily | Unofficial chart endpoint. Default for everything non-crypto, and the FX source for conversions. |
 | `nasdaq` | US stocks, ETFs | | | Unofficial. Alternative if Yahoo misbehaves. |
+| `kitco` | Spot gold, silver, platinum, palladium in USD, CAD, EUR and more | yes (metals) | via Yahoo futures | Unofficial endpoint behind Kitco's charts. Mid price and change since previous close. Default for metals. |
+| `goldapi` | Spot gold, silver, platinum, palladium in any major currency | | via Yahoo futures | gold-api.com. Price only; the change comes from history. |
+
+**Metals.** Type `gold`, `silver`, `xau`, or `gold cad` in the Lines dialog, or pick the Metals chip. Spot
+metals default to USD; pick any quote. Neither metal source offers free history, so a new metal line
+backfills 3 months of daily closes from the matching COMEX / NYMEX futures contract on Yahoo (`GC=F`,
+`SI=F`, `PL=F`, `PA=F`). Futures sit slightly above spot, so the first month of sparkline and 7d / 30d is
+futures-based until the widget's own spot readings take over. Which metals exist, their Kitco codes,
+futures symbols and providers are all in `providers.json` → `metals`.
 
 All are public endpoints with no key. They are polled hourly by default (every 5 minutes for lines with an
 alert), which is well inside every provider's unauthenticated limits. Stooq, Alpha Vantage, Finnhub, Twelve
