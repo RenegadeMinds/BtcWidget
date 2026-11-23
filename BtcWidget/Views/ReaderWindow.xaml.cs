@@ -38,6 +38,15 @@ public partial class ReaderWindow : Window
             core.Profile.PreferredColorScheme = _darkPages ? CoreWebView2PreferredColorScheme.Dark : CoreWebView2PreferredColorScheme.Light;
     }
 
+    /// <summary>The saved size, limited to the work area and the window's minimum, centered in that work area.</summary>
+    public static Rect CenteredIn(Size saved, Rect workArea)
+    {
+        const double minWidth = 400, minHeight = 300;
+        var width = Math.Min(Math.Max(minWidth, saved.Width), Math.Max(minWidth, workArea.Width));
+        var height = Math.Min(Math.Max(minHeight, saved.Height), Math.Max(minHeight, workArea.Height));
+        return new Rect(workArea.Left + (workArea.Width - width) / 2, workArea.Top + (workArea.Height - height) / 2, width, height);
+    }
+
     public ReaderWindow()
     {
         InitializeComponent();

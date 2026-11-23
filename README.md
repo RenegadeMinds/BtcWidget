@@ -22,6 +22,8 @@ WPF on .NET 10. Windows 10 / 11, x64.
   stock, macro, commodity and forex feeds to pick from, tagged by sector and country (US, UK, EU, Canada,
   Australia, Korea, Japan, China, Taiwan, India…), plus any RSS / Atom URL you add. Comma-separated text
   filter, sector filter, pin it open, open in your browser or a built-in reader.
+- **Column or bar.** Lines stack in a narrow widget and tile side by side in a wide one, down to a slim
+  one-row bar across the screen, aligned left or right.
 - **Stays out of your way.** Minimize it and it comes back after N minutes or when an alert fires, without
   ever taking focus. Start with Windows. Global hotkey. Tray icon. One instance only: launching it again
   just brings the running widget forward. Opacity, font size, width, always-on-top, tooltips on or off.
@@ -46,8 +48,15 @@ not trust a binary, build it yourself in two commands; see below.
 ## How to use it
 
 **First run.** The widget appears bottom-right with Bitcoin on Kraken and on CoinGecko. Drag the panel
-anywhere; the position is remembered. Drag the left or right edge to change the width, the bottom edge to
-cap the list height (double-click the bottom edge to go back to "grow with content").
+anywhere; the position is remembered. Drag the left or right edge to change the width, up to the full width
+of the screen it is on. Drag the top or bottom edge to cap the list height (double-click either to go back
+to "grow with content").
+
+**Tall column or wide bar.** Lines tile side by side as soon as two or more fit at full readability. The
+tile width is measured from your lines, so it follows the font size, price lengths and the detail row, and
+columns stay aligned across tiles. Tiles keep that width and stay together: a tiny arrow at the far end of
+the spare room moves the group to that side. When everything fits on one row, the status and links join
+the title bar for a slim bar.
 
 **Title bar, left to right:** news, alerts, add / remove lines, refresh, settings, about (?), minimize,
 close. The ✕ exits by default; Settings → Behaviour can make it minimize instead (Exit stays in the tray
@@ -201,7 +210,7 @@ older than 48 hours are dropped.
 | `Services/` | `IPriceSource` + `IInstrumentSearch` and the six `*Source` providers; `PriceService` (per-line poll loop, derived prices, search fan-out); `HistoryStore` (SQLite); `PriceAnalysis`; `AlertEngine`; `AlertLog`; `NewsService` (RSS / Atom fetch, parse, merge); `FeedStore` (feeds.json); `ProviderData` (providers.json / currencies.json loader, URL templates); `ImageCache` (logo files); `TrayIcon` (Shell_NotifyIcon, balloon notifications); `HotkeyManager`; `SettingsStore`; `MemoryDiagnostics` |
 | `ViewModels/` | `MainViewModel` (widget + settings + alert dispatch + news state), `PriceRowViewModel`, `LinesViewModel`, `AlertsViewModel`, `NewsViewModel`, `NewsFeedOption` / `NewsFeedGroup`, `LinkViewModel` |
 | `Views/` | `MainWindow` (the widget), `LinesWindow`, `AlertsWindow`, `NewsWindow` (popup), `ReaderWindow` (WebView2), `SettingsWindow` |
-| `Controls/` | `Sparkline` |
+| `Controls/` | `Sparkline`; `TilePanel` (measured-width tiling, left / right alignment) |
 | `Converters/` | Price / percent formatting and colour converters |
 | `Assets/` | Icons. The provider badges are generated PNGs; drop in real logos with the same names if you like |
 

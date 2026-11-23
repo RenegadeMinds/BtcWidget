@@ -203,11 +203,11 @@
         <Slider    Grid.Row="3" Grid.Column="1" Value="{Binding FontSize}" Minimum="10" Maximum="28" TickFrequency="1" />
         <TextBlock Grid.Row="3" Grid.Column="2" Style="{StaticResource Value}" Text="{Binding FontSize, StringFormat={}{0:0} px}" />
 
-        <TextBlock Grid.Row="4" Style="{StaticResource Label}" Text="Width" ToolTip="You can also drag the widget's left or right edge." />
-        <Slider    Grid.Row="4" Grid.Column="1" Value="{Binding WindowWidth}" Minimum="220" Maximum="1600" TickFrequency="10" />
+        <TextBlock Grid.Row="4" Style="{StaticResource Label}" Text="Width" ToolTip="You can also drag the widget's left or right edge. Lines tile side by side once two fit." />
+        <Slider    Grid.Row="4" Grid.Column="1" Value="{Binding WindowWidth}" Minimum="220" Maximum="{Binding WidthSliderMax}" TickFrequency="10" />
         <TextBlock Grid.Row="4" Grid.Column="2" Style="{StaticResource Value}" Text="{Binding WindowWidth, StringFormat={}{0:0} px}" />
 
-        <TextBlock Grid.Row="5" Style="{StaticResource Label}" Text="List height" ToolTip="The list scrolls beyond this height. 0 = grow with the content. You can also drag the widget's bottom edge." />
+        <TextBlock Grid.Row="5" Style="{StaticResource Label}" Text="List height" ToolTip="The list scrolls beyond this height. 0 = grow with the content. You can also drag the widget's top or bottom edge." />
         <Slider    Grid.Row="5" Grid.Column="1" Value="{Binding ListHeight}" Minimum="0" Maximum="1200" TickFrequency="20" />
         <TextBlock Grid.Row="5" Grid.Column="2" Style="{StaticResource Value}" Text="{Binding ListHeight, Converter={StaticResource ListHeightText}}" />
 

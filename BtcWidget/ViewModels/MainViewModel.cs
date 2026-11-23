@@ -49,6 +49,15 @@ public sealed partial class MainViewModel : ObservableObject, ITooltipPolicy
     [ObservableProperty] private double _windowWidth;
     [ObservableProperty] private bool _showDetails;
     [ObservableProperty] private double _listHeight;
+    [ObservableProperty] private bool _alignTilesRight;
+    /// <summary>Width of the monitor the widget is on; the window cannot be wider.</summary>
+    [ObservableProperty] private double _maxWindowWidth = SystemParameters.VirtualScreenWidth;
+    /// <summary>All lines fit on one row: the title bar and status share one line.</summary>
+    [ObservableProperty] private bool _isSingleRow;
+    /// <summary>There is spare width beside the tiles, so the alignment toggle is shown.</summary>
+    [ObservableProperty] private bool _hasTileSpace;
+    /// <summary>Settings slider limit; never below the saved width, so opening Settings cannot shrink it.</summary>
+    public double WidthSliderMax => Math.Max(MaxWindowWidth, WindowWidth);
     [ObservableProperty] private bool _toastsEnabled;
     [ObservableProperty] private bool _showTooltips;
     [ObservableProperty] private string _rateProvider;
@@ -168,6 +177,7 @@ public sealed partial class MainViewModel : ObservableObject, ITooltipPolicy
         _windowWidth = settings.Width;
         _showDetails = settings.ShowDetails;
         _listHeight = settings.ListHeight;
+        _alignTilesRight = settings.AlignTilesRight;
         _toastsEnabled = settings.ToastsEnabled;
         _showTooltips = settings.ShowTooltips;
         _rateProvider = settings.RateProvider;
@@ -579,6 +589,7 @@ public sealed partial class MainViewModel : ObservableObject, ITooltipPolicy
         if (CloseButtonAction == "minimize") MinimizeRequested?.Invoke(); else CloseRequested?.Invoke();
     }
     [RelayCommand] private void OpenAbout() => AboutRequested?.Invoke();
+    [RelayCommand] private void ToggleTileAlign() => AlignTilesRight = !AlignTilesRight;
 
     /// <summary>Store the result of an update check (manual or daily) and light the ? button if it is newer.</summary>
     public void RecordUpdateCheck(UpdateInfo? info)
@@ -609,7 +620,9 @@ public sealed partial class MainViewModel : ObservableObject, ITooltipPolicy
     partial void OnAlwaysOnTopChanged(bool value) { _settings.AlwaysOnTop = value; Changed(); }
     partial void OnShowInTaskbarChanged(bool value) { _settings.ShowInTaskbar = value; Changed(); }
     partial void OnToggleHotkeyChanged(string value) { _settings.ToggleHotkey = value; Changed(); }
-    partial void OnWindowWidthChanged(double value) { _settings.Width = value; Changed(); }
+    partial void OnWindowWidthChanged(double value) { _settings.Width = value; OnPropertyChanged(nameof(WidthSliderMax)); Changed(); }
+    partial void OnMaxWindowWidthChanged(double value) => OnPropertyChanged(nameof(WidthSliderMax));
+    partial void OnAlignTilesRightChanged(bool value) { _settings.AlignTilesRight = value; Changed(); }
     partial void OnShowDetailsChanged(bool value) { _settings.ShowDetails = value; Changed(); }
     partial void OnListHeightChanged(double value) { _settings.ListHeight = Math.Max(0, value); Changed(); }
     partial void OnToastsEnabledChanged(bool value) { _settings.ToastsEnabled = value; Changed(); }

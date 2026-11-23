@@ -22,6 +22,19 @@ public partial class NewsWindow : Window
         };
     }
 
+    /// <summary>
+    /// Where the popup opens: below the widget if it fits, else above it, right edges aligned, and always
+    /// inside <paramref name="workArea"/>, the work area of the monitor the widget is on.
+    /// </summary>
+    public static Point PlaceBeside(Rect widget, Size popup, Rect workArea)
+    {
+        var below = widget.Bottom - 8;
+        var top = below + popup.Height <= workArea.Bottom ? below : widget.Top - popup.Height + 8;
+        var left = widget.Right - popup.Width;
+        return new Point(Math.Max(workArea.Left, Math.Min(left, workArea.Right - popup.Width)),
+                         Math.Max(workArea.Top, Math.Min(top, workArea.Bottom - popup.Height)));
+    }
+
     private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (e.ButtonState == MouseButtonState.Pressed && e.OriginalSource is not System.Windows.Controls.Primitives.ButtonBase) DragMove();

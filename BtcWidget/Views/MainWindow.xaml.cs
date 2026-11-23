@@ -2,16 +2,27 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
+using BtcWidget.Controls;
 using BtcWidget.ViewModels;
 
 namespace BtcWidget.Views;
 
 public partial class MainWindow : Window
 {
-    private const int WM_NCHITTEST = 0x0084, WM_NCLBUTTONDOWN = 0x00A1, WM_ENTERSIZEMOVE = 0x0231, WM_EXITSIZEMOVE = 0x0232;
-    private const int HTCLIENT = 1, HTLEFT = 10, HTRIGHT = 11, HTBOTTOM = 15;
-    private double _heightBeforeResize;
-    private bool _resizingHeight;
+    private const int WM_NCHITTEST = 0x0084, WM_NCLBUTTONDOWN = 0x00A1, WM_ENTERSIZEMOVE = 0x0231, WM_EXITSIZEMOVE = 0x0232,
+        WM_SIZING = 0x0214, WM_DISPLAYCHANGE = 0x007E, WM_DPICHANGED = 0x02E0, WM_SETTINGCHANGE = 0x001A;
+    private const int HTCLIENT = 1, HTLEFT = 10, HTRIGHT = 11, HTTOP = 12, HTBOTTOM = 15;
+    private const int WMSZ_LEFT = 1, SPI_SETWORKAREA = 47;
+    private const uint MONITOR_DEFAULTTONEAREST = 2;
+    private double _heightBeforeResize, _bottomBeforeResize;
+    private int _resizeEdge;
+    private bool _keepBottom;
+    private TilePanel? _tiles;
+
+    [StructLayout(LayoutKind.Sequential)] private struct RECT { public int Left, Top, Right, Bottom; }
+    [StructLayout(LayoutKind.Sequential)] private struct MONITORINFO { public int cbSize; public RECT rcMonitor, rcWork; public uint dwFlags; }
+    [DllImport("user32.dll")] private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);
+    [DllImport("user32.dll")] private static extern bool GetMonitorInfo(IntPtr monitor, ref MONITORINFO info);
 
     [DllImport("user32.dll")] private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
     [DllImport("user32.dll")] private static extern bool ReleaseCapture();
@@ -97,7 +108,55 @@ public partial class MainWindow : Window
             Left = wa.Right - ActualWidth - 12;
             Top = wa.Bottom - ActualHeight - 12;
         }
+        UpdateMonitorLimits();
         ClampToWorkArea();
+    }
+
+    private void Tiles_Loaded(object sender, RoutedEventArgs e)
+    {
+        _tiles = (TilePanel)sender;
+        _tiles.Reflowed += t =>
+        {
+            if (DataContext is not MainViewModel vm) return;
+            vm.IsSingleRow = t.IsSingleRow;
+            vm.HasTileSpace = t.HasSpareRoom;
+        };
+        if (DataContext is not MainViewModel m) return;
+        m.IsSingleRow = _tiles.IsSingleRow;
+        m.HasTileSpace = _tiles.HasSpareRoom;
+
+        // Anything that can change how wide a line wants to be re-measures the tiles.
+        foreach (var row in m.Rows) row.PropertyChanged += Row_PropertyChanged;
+        m.Rows.CollectionChanged += (_, c) =>
+        {
+            if (c.OldItems is not null) foreach (PriceRowViewModel row in c.OldItems) row.PropertyChanged -= Row_PropertyChanged;
+            if (c.NewItems is not null) foreach (PriceRowViewModel row in c.NewItems) row.PropertyChanged += Row_PropertyChanged;
+            _tiles?.Refresh();
+        };
+        m.PropertyChanged += (_, p) =>
+        {
+            if (p.PropertyName is nameof(MainViewModel.FontSize) or nameof(MainViewModel.ShowDetails)) _tiles?.Refresh();
+        };
+    }
+
+    private void Row_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e) => _tiles?.Refresh();
+
+    /// <summary>Work area of the monitor the widget is mostly on, in WPF units.</summary>
+    public Rect CurrentWorkArea()
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        var target = PresentationSource.FromVisual(this)?.CompositionTarget;
+        if (hwnd == IntPtr.Zero || target is null) return SystemParameters.WorkArea;
+        var info = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
+        if (!GetMonitorInfo(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), ref info)) return SystemParameters.WorkArea;
+        var m = target.TransformFromDevice;
+        return new Rect(m.Transform(new Point(info.rcWork.Left, info.rcWork.Top)), m.Transform(new Point(info.rcWork.Right, info.rcWork.Bottom)));
+    }
+
+    /// <summary>The widget can be as wide as the screen it is on. The chosen width is kept, so it regrows on a bigger one.</summary>
+    private void UpdateMonitorLimits()
+    {
+        if (DataContext is MainViewModel vm) vm.MaxWindowWidth = Math.Max(MinWidth, CurrentWorkArea().Width);
     }
 
     /// <summary>
@@ -106,11 +165,8 @@ public partial class MainWindow : Window
     /// </summary>
     private void ClampToWorkArea()
     {
-        if (WindowState != WindowState.Normal || double.IsNaN(Left) || double.IsNaN(Top)) return;
-        var wa = SystemParameters.WorkArea;
-        // Multi-monitor: only clamp against the primary work area when the window is actually on it.
-        var onPrimary = Left < wa.Right && Left + ActualWidth > wa.Left && Top < wa.Bottom && Top + ActualHeight > wa.Top;
-        if (!onPrimary) return;
+        if (_resizeEdge != 0 || WindowState != WindowState.Normal || double.IsNaN(Left) || double.IsNaN(Top)) return;
+        var wa = CurrentWorkArea();
         if (Left + ActualWidth > wa.Right) Left = Math.Max(wa.Left, wa.Right - ActualWidth);
         if (Top + ActualHeight > wa.Bottom) Top = Math.Max(wa.Top, wa.Bottom - ActualHeight);
     }
@@ -120,26 +176,30 @@ public partial class MainWindow : Window
         if (e.ButtonState == MouseButtonState.Pressed) DragMove();
     }
 
-    // ---- Width resizing ----
+    // ---- Resizing ----
     // ResizeMode=CanResize gives the window a (invisible) thick frame so Windows can run a size drag,
-    // but we take over hit-testing so only our two edge grips start one: height must stay SizeToContent.
+    // but we take over hit-testing so only our edge grips start one. Left / right change the width and the
+    // height follows the tiles live; top / bottom set the list's maximum height.
 
     private void LeftGrip_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) => BeginResize(HTLEFT);
     private void RightGrip_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) => BeginResize(HTRIGHT);
 
-    private void BottomGrip_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    private void TopGrip_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) => HeightGrip(e, HTTOP);
+    private void BottomGrip_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) => HeightGrip(e, HTBOTTOM);
+
+    private void HeightGrip(MouseButtonEventArgs e, int edge)
     {
         if (e.ClickCount == 2)
         {
             if (DataContext is MainViewModel vm) vm.ListHeight = 0;   // back to "grow with content"
             return;
         }
-        _resizingHeight = true;
-        BeginResize(HTBOTTOM);
+        BeginResize(edge);
     }
 
     private void BeginResize(int hitTest)
     {
+        _resizeEdge = hitTest;
         ReleaseCapture();
         SendMessage(new WindowInteropHelper(this).Handle, WM_NCLBUTTONDOWN, hitTest, IntPtr.Zero);
     }
@@ -154,28 +214,82 @@ public partial class MainWindow : Window
                 return HTCLIENT;
             case WM_ENTERSIZEMOVE:
                 _heightBeforeResize = ActualHeight;
+                _bottomBeforeResize = Top + ActualHeight;
+                // A width drag changes the height: keep whichever edge is nearer the screen edge where it is.
+                var area = CurrentWorkArea();
+                _keepBottom = _resizeEdge == HTTOP
+                              || (_resizeEdge != HTBOTTOM && area.Bottom - _bottomBeforeResize < Top - area.Top);
+                break;
+            case WM_SIZING:
+                if (_resizeEdge is HTLEFT or HTRIGHT)
+                {
+                    FitHeightToTiles(wParam.ToInt32(), lParam);
+                    handled = true;
+                    return new IntPtr(1);
+                }
                 break;
             case WM_EXITSIZEMOVE:
-                // A user resize switches SizeToContent to Manual; put it back so rows keep driving the height,
-                // and persist the new width. A bottom-edge drag becomes the list's maximum height.
+                // A user resize switches SizeToContent to Manual; put it back so rows keep driving the height.
+                // A top or bottom drag becomes the list's maximum height; a side drag is the new width.
+                var edge = _resizeEdge;
                 var grewBy = ActualHeight - _heightBeforeResize;
-                var heightDrag = _resizingHeight;
-                _resizingHeight = false;
+                var keepBottom = _keepBottom;
+                var bottom = Top + ActualHeight;
+                _resizeEdge = 0;
                 Dispatcher.BeginInvoke(() =>
                 {
-                    if (DataContext is MainViewModel vm)
+                    if (edge != 0 && DataContext is MainViewModel vm)
                     {
-                        if (heightDrag)
+                        if (edge is HTTOP or HTBOTTOM)
                         {
                             var current = vm.ListHeight > 0 ? Math.Min(vm.ListHeight, List.ActualHeight) : List.ActualHeight;
                             vm.ListHeight = Math.Max(40, current + grewBy);
                         }
-                        vm.WindowWidth = ActualWidth;
+                        else vm.WindowWidth = ActualWidth;
+                        SizeToContent = SizeToContent.Height;
+                        if (keepBottom)
+                            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () => Top = bottom - ActualHeight);
                     }
-                    SizeToContent = SizeToContent.Height;
+                    // A drag may have ended on another monitor.
+                    UpdateMonitorLimits();
+                    Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, ClampToWorkArea);
                 });
+                break;
+            case WM_DISPLAYCHANGE:
+            case WM_DPICHANGED:
+            case WM_SETTINGCHANGE when wParam.ToInt32() == SPI_SETWORKAREA:
+                Dispatcher.BeginInvoke(() => { UpdateMonitorLimits(); ClampToWorkArea(); });
                 break;
         }
         return IntPtr.Zero;
+    }
+
+    /// <summary>During a side drag: keep the width in limits and size the window to the tiles at that width, live.</summary>
+    private void FitHeightToTiles(int sizingEdge, IntPtr rectPtr)
+    {
+        var target = PresentationSource.FromVisual(this)?.CompositionTarget;
+        if (target is null || Content is not UIElement root) return;
+        var toDip = target.TransformFromDevice;
+        var r = Marshal.PtrToStructure<RECT>(rectPtr);
+
+        var minPx = (int)Math.Ceiling(MinWidth / toDip.M11);
+        var maxPx = (int)Math.Floor(MaxWidth / toDip.M11);
+        var widthPx = Math.Clamp(r.Right - r.Left, minPx, Math.Max(minPx, maxPx));
+        if (sizingEdge == WMSZ_LEFT) r.Left = r.Right - widthPx; else r.Right = r.Left + widthPx;
+
+        var settled = root.RenderSize;
+        var probe = new Size(widthPx * toDip.M11, double.PositiveInfinity);
+        root.Measure(probe);
+        // The one-line header changes the height, so settle it before reading the result.
+        if (_tiles is not null && DataContext is MainViewModel vm && vm.IsSingleRow != _tiles.MeasuredSingleRow)
+        {
+            vm.IsSingleRow = _tiles.MeasuredSingleRow;
+            root.Measure(probe);
+        }
+        var heightPx = (int)Math.Ceiling(root.DesiredSize.Height / toDip.M22);
+        root.Measure(settled);
+
+        if (_keepBottom) r.Top = r.Bottom - heightPx; else r.Bottom = r.Top + heightPx;
+        Marshal.StructureToPtr(r, rectPtr, false);
     }
 }

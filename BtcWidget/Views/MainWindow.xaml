@@ -10,7 +10,7 @@
         Title="{Binding Title}"
         Width="{Binding WindowWidth, Mode=TwoWay}"
         SizeToContent="Height"
-        MinWidth="220" MaxWidth="1600"
+        MinWidth="220" MaxWidth="{Binding MaxWindowWidth}"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -31,13 +31,33 @@
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="FontSize" Value="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=FontSize, Converter={StaticResource Scale}, ConverterParameter=0.8}" />
         </Style>
+        <!-- Status and external links: below the list, or in the title bar for a one-row bar -->
+        <DataTemplate x:Key="FooterLine">
+            <DockPanel LastChildFill="True">
+                    <ItemsControl DockPanel.Dock="Right" ItemsSource="{Binding Links}" Focusable="False">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:LinkViewModel}">
+                                <Button Style="{StaticResource IconButton}" Command="{Binding OpenCommand}" ToolTip="{Binding Name}" Padding="3">
+                                    <Image Style="{StaticResource SourceIcon}" Source="{Binding IconUri}" />
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Style="{StaticResource Small}" Text="{Binding Status}" TextTrimming="CharacterEllipsis" />
+            </DockPanel>
+        </DataTemplate>
     </Window.Resources>
 
     <!--
         Layout: one rounded panel. The panel's background brush carries WindowOpacity;
         the content grid carries TextOpacity, so the two sliders are independent.
-        Width is resizable by dragging the left or right edge (ResizeMode=CanResize + the two grips
-        below); height always follows content.
+        Width is resizable by dragging the left or right edge, the list height by the top or bottom edge
+        (ResizeMode=CanResize + the grips below); height otherwise follows content.
     -->
     <Grid>
         <Border x:Name="Panel" CornerRadius="10" BorderThickness="1" Margin="6"
@@ -109,8 +129,10 @@
                         <Button Style="{StaticResource IconButton}" Command="{Binding CloseCommand}"
                                 ToolTip="Close" Content="&#xE8BB;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" />
                     </StackPanel>
-                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" VerticalAlignment="Center"
+                    <TextBlock DockPanel.Dock="Left" Text="{Binding Title}" FontWeight="SemiBold" VerticalAlignment="Center"
                                Foreground="{StaticResource AccentBrush}" />
+                    <ContentControl Content="{Binding}" ContentTemplate="{StaticResource FooterLine}" Focusable="False" VerticalAlignment="Center" Margin="14,0,10,0"
+                                    Visibility="{Binding IsSingleRow, Converter={StaticResource BoolToVisibility}}" />
                 </DockPanel>
 
                 <!-- One row per line. The list scrolls once it is taller than the List height setting
@@ -119,7 +141,14 @@
                 <ScrollViewer x:Name="List" Grid.Row="1" Margin="0,4,0,2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                               Focusable="False" PanningMode="VerticalOnly"
                               MaxHeight="{Binding ListHeight, Converter={StaticResource MaxHeight}}">
+                <Grid>
                 <ItemsControl ItemsSource="{Binding Rows}" Focusable="False" Grid.IsSharedSizeScope="True">
+                    <!-- As many columns as fit; the tile width is measured from the lines themselves -->
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ctl:TilePanel AlignRight="{Binding AlignTilesRight}" Loaded="Tiles_Loaded" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type vm:PriceRowViewModel}">
                             <Button Command="{Binding OpenCommand}" HorizontalContentAlignment="Stretch" Padding="4,3"
@@ -173,6 +202,7 @@
                                                            MinWidth="56" TextAlignment="Right" VerticalAlignment="Center" />
                                             </Grid>
                                             <!-- "Bitcoin  Kraken": name, then provider in muted small text; a small bell at the end when alerts are set -->
+                                            <ctl:NaturalWidthCap Cap="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=FontSize, Converter={StaticResource Scale}, ConverterParameter=13}">
                                             <DockPanel LastChildFill="True">
                                                 <TextBlock DockPanel.Dock="Right" Text="&#xEA8F;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" ToolTip="{Binding RulesText}"
                                                            Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="4,0,2,0"
@@ -184,6 +214,7 @@
                                                          FontSize="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=FontSize, Converter={StaticResource Scale}, ConverterParameter=0.8}" />
                                                 </TextBlock>
                                             </DockPanel>
+                                            </ctl:NaturalWidthCap>
                                         </DockPanel>
 
                                         <!-- Line 2: sparkline . 7d . 30d . range -->
@@ -220,26 +251,32 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
+                <!-- Tiny toggle at the far end of the spare room: moves the tiles to that side -->
+                <Button Command="{Binding ToggleTileAlignCommand}" VerticalAlignment="Bottom" Padding="3,2" Margin="0,0,0,2"
+                        FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                        FontSize="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=FontSize, Converter={StaticResource Scale}, ConverterParameter=0.7}"
+                        Visibility="{Binding HasTileSpace, Converter={StaticResource BoolToVisibility}}">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource IconButton}">
+                            <Setter Property="HorizontalAlignment" Value="Right" />
+                            <Setter Property="Content" Value="&#xE76C;" />
+                            <Setter Property="ToolTip" Value="Move the lines to the right" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding AlignTilesRight}" Value="True">
+                                    <Setter Property="HorizontalAlignment" Value="Left" />
+                                    <Setter Property="Content" Value="&#xE76B;" />
+                                    <Setter Property="ToolTip" Value="Move the lines to the left" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                </Grid>
                 </ScrollViewer>
 
-                <!-- Footer: status + external links -->
-                <DockPanel Grid.Row="2" LastChildFill="True" Margin="4,2,0,0">
-                    <ItemsControl DockPanel.Dock="Right" ItemsSource="{Binding Links}" Focusable="False">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <StackPanel Orientation="Horizontal" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="{x:Type vm:LinkViewModel}">
-                                <Button Style="{StaticResource IconButton}" Command="{Binding OpenCommand}" ToolTip="{Binding Name}" Padding="3">
-                                    <Image Style="{StaticResource SourceIcon}" Source="{Binding IconUri}" />
-                                </Button>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <TextBlock Style="{StaticResource Small}" Text="{Binding Status}" TextTrimming="CharacterEllipsis" />
-                </DockPanel>
+                <!-- Footer: status + external links. Moves into the title bar when all lines fit on one row. -->
+                <ContentControl Grid.Row="2" Content="{Binding}" ContentTemplate="{StaticResource FooterLine}" Focusable="False" Margin="4,2,0,0"
+                                Visibility="{Binding IsSingleRow, Converter={StaticResource BoolToVisibilityInverse}}" />
             </Grid>
         </Border>
 
@@ -248,6 +285,10 @@
                 MouseLeftButtonDown="LeftGrip_MouseLeftButtonDown" />
         <Border Width="8" HorizontalAlignment="Right" Background="Transparent" Cursor="SizeWE" Margin="0,12"
                 MouseLeftButtonDown="RightGrip_MouseLeftButtonDown" />
+        <!-- Top edge: same as the bottom edge, growing upward -->
+        <Border Height="8" VerticalAlignment="Top" Background="Transparent" Cursor="SizeNS" Margin="12,0"
+                ToolTip="Drag to set the list height. Double-click for automatic height."
+                MouseLeftButtonDown="TopGrip_MouseLeftButtonDown" />
         <!-- Bottom edge: drag to set the list height (the list scrolls beyond it); double-click to go back to auto -->
         <Border Height="8" VerticalAlignment="Bottom" Background="Transparent" Cursor="SizeNS" Margin="12,0"
                 ToolTip="Drag to set the list height. Double-click for automatic height."

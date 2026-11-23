@@ -198,12 +198,10 @@ public partial class App : Application
         };
         vm.CloseRequested += () => win.Close();
 
-        var wa = SystemParameters.WorkArea;
-        var below = _window.Top + _window.ActualHeight - 8;
-        var top = below + win.Height <= wa.Bottom ? below : _window.Top - win.Height + 8;
-        var left = _window.Left + _window.ActualWidth - win.Width;
-        win.Left = Math.Max(wa.Left, Math.Min(left, wa.Right - win.Width));
-        win.Top = Math.Max(wa.Top, Math.Min(top, wa.Bottom - win.Height));
+        var spot = NewsWindow.PlaceBeside(new Rect(_window.Left, _window.Top, _window.ActualWidth, _window.ActualHeight),
+            new Size(win.Width, win.Height), _window.CurrentWorkArea());
+        win.Left = spot.X;
+        win.Top = spot.Y;
 
         win.Closed += (_, _) =>
         {
@@ -223,15 +221,18 @@ public partial class App : Application
     {
         if (_reader is null)
         {
+            // Centered on the widget's monitor, and no bigger than it.
+            var bounds = ReaderWindow.CenteredIn(new Size(_settings.ReaderWidth, _settings.ReaderHeight), _window.CurrentWorkArea());
             _reader = new ReaderWindow
             {
-                Width = Math.Max(400, _settings.ReaderWidth), Height = Math.Max(300, _settings.ReaderHeight),
+                Left = bounds.Left, Top = bounds.Top, Width = bounds.Width, Height = bounds.Height,
                 FontSize = _settings.FontSize, DarkPages = _settings.ReaderDarkPages
             };
             _reader.DarkPagesChanged += dark => { _settings.ReaderDarkPages = dark; SaveSettings(); };
             _reader.Closed += (_, _) =>
             {
-                if (_reader is not null)
+                // Only a real resize is saved: fitting onto a small monitor must not shrink the size used on a big one.
+                if (_reader is not null && (Math.Abs(_reader.ActualWidth - bounds.Width) > 1 || Math.Abs(_reader.ActualHeight - bounds.Height) > 1))
                 {
                     _settings.ReaderWidth = _reader.ActualWidth;
                     _settings.ReaderHeight = _reader.ActualHeight;
@@ -240,9 +241,6 @@ public partial class App : Application
                 SaveSettings();
                 TrimHeap();
             };
-            var wa = SystemParameters.WorkArea;
-            _reader.Left = wa.Left + (wa.Width - _reader.Width) / 2;
-            _reader.Top = wa.Top + (wa.Height - _reader.Height) / 2;
             _reader.Show();
         }
         _reader.Navigate(url, title);

@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.6.0 — 2026-11-23
+
+- Lines tile side by side when two or more fit at full readability. The tile width is measured from the
+  lines themselves, so it follows font size, price lengths and the detail row. Columns stay aligned.
+- Tiles stay together on the left or right; a tiny arrow at the end of the spare room switches sides.
+- One-row bar: when everything fits on one row, the status and links move into the title bar.
+- The widget reflows live while you drag its width, and keeps its bottom edge when docked low on the screen.
+- New: drag the top edge to set the list height, like the bottom edge.
+- Maximum width is now the width of the monitor the widget is on, instead of a fixed 1600px.
+- Fixed: the news popup and the built-in reader opened on the primary monitor when the widget was on another
+  screen. Both now open on the widget's monitor, and the reader is never larger than that screen.
+
 ## 1.5.0 — 2026-11-20
 
 - Spot precious metals: gold, silver, platinum and palladium from Kitco and gold-api.com, in USD, CAD or any

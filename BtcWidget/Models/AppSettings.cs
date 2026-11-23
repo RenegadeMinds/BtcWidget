@@ -36,6 +36,9 @@ public sealed class AppSettings
     /// <summary>Maximum height of the list of lines in pixels; the list scrolls beyond it. 0 = grow with content.</summary>
     public double ListHeight { get; set; } = 0;
 
+    /// <summary>When tiles leave spare width, keep them on the right (spare room on the left).</summary>
+    public bool AlignTilesRight { get; set; } = false;
+
     /// <summary>Raise a Windows notification when an alert fires (the row is highlighted either way).</summary>
     public bool ToastsEnabled { get; set; } = true;
 
