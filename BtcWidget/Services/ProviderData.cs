@@ -7,10 +7,10 @@ namespace BtcWidget.Services;
 
 /// <summary>
 /// Loads the data files in <c>Data\</c> (providers.json, currencies.json): everything about external sites
-/// that can change without a rebuild. Each file is read from three places and merged, later ones winning:
-/// the copy embedded in the assembly, the copy beside the exe, and the user's copy in
-/// <c>%LocalAppData%\BtcWidget</c> (written on first run so there is something to edit). So a new version
-/// brings new or corrected entries, and the user's edits survive it.
+/// that can change without a rebuild. The user has an editable copy in <c>%LocalAppData%\BtcWidget</c>, and
+/// <c>shipped\</c> beside it remembers the version that copy was last in step with. Comparing the three tells
+/// a value the user changed (kept) from one they never touched (updated), so a new version delivers its fixes
+/// and the user's edits survive it.
 /// </summary>
 public static class DataFiles
 {
@@ -20,30 +20,114 @@ public static class DataFiles
         Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
     };
 
-    public static JsonNode Load(string fileName)
+    private static readonly JsonSerializerOptions WriteOptions = new()
     {
-        JsonNode? merged = null;
-        foreach (var json in new[] { ReadEmbedded(fileName), ReadFile(Path.Combine(AppContext.BaseDirectory, "Data", fileName)), ReadFile(UserPath(fileName)) })
+        WriteIndented = true,
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
+    /// <summary>Things the user should hear about after loading: a data file that could not be read.</summary>
+    public static List<string> Problems { get; } = [];
+
+    public static JsonNode Load(string fileName, string? userDirectory = null)
+    {
+        var directory = userDirectory ?? SettingsStore.DataDirectory;
+        var userPath = Path.Combine(directory, fileName);
+        var snapshotPath = Path.Combine(directory, "shipped", fileName);
+        var besideExe = ReadFile(Path.Combine(AppContext.BaseDirectory, "Data", fileName));
+
+        JsonNode? shipped = null;
+        foreach (var json in new[] { ReadEmbedded(fileName), besideExe })
+            if (Parse(json) is { } node) shipped = shipped is null ? node : Merge(shipped, node);
+        if (shipped is null) throw new InvalidDataException($"Data file {fileName} is missing or unreadable.");
+
+        if (!File.Exists(userPath))
         {
-            if (json is null) continue;
-            JsonNode? node;
-            try { node = JsonNode.Parse(json, documentOptions: new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true }); }
-            catch { continue; }
-            merged = merged is null ? node : Merge(merged, node);
+            // First run: give the user a copy to edit, the shipped file verbatim (comments and layout intact).
+            TryWrite(userPath, besideExe ?? ReadEmbedded(fileName));
+            TryWrite(snapshotPath, shipped.ToJsonString(WriteOptions));
+            return shipped;
         }
-        if (merged is null) throw new InvalidDataException($"Data file {fileName} is missing or unreadable.");
-        if (!File.Exists(UserPath(fileName)))
+
+        var userText = ReadFile(userPath);
+        var user = Parse(userText);
+        if (user is null)
         {
-            // Give the user a copy to edit: the shipped file verbatim (comments and layout intact).
-            try
-            {
-                Directory.CreateDirectory(SettingsStore.DataDirectory);
-                var shipped = ReadFile(Path.Combine(AppContext.BaseDirectory, "Data", fileName)) ?? ReadEmbedded(fileName);
-                if (shipped is not null) File.WriteAllText(UserPath(fileName), shipped);
-            }
-            catch { /* read-only profile */ }
+            Problems.Add($"{fileName} has a mistake, so the built-in values are in use. Your file was not changed.");
+            return shipped;
+        }
+
+        var baseline = Parse(ReadFile(snapshotPath)) ?? Parse(ReadEmbedded("baseline." + fileName)) ?? shipped;
+        var merged = ThreeWayMerge(baseline, user, shipped) ?? shipped;
+        if (!JsonNode.DeepEquals(baseline, shipped))
+        {
+            // A new version changed this file: bring the user's copy up to date, keeping a copy of how it was.
+            TryWrite(snapshotPath + ".before-update", userText);
+            if (TryWrite(userPath, merged.ToJsonString(WriteOptions)))
+                TryWrite(snapshotPath, shipped.ToJsonString(WriteOptions));
+        }
+        else if (!File.Exists(snapshotPath))
+        {
+            TryWrite(snapshotPath, shipped.ToJsonString(WriteOptions));
         }
         return merged;
+    }
+
+    /// <summary>
+    /// Objects merge key by key. For anything else (a value or a whole list): if the user's value is still what
+    /// they were given, take the new one; if they changed it, keep theirs. Keys only the new version has are
+    /// added; keys the new version dropped go too, unless the user changed or added them.
+    /// </summary>
+    public static JsonNode? ThreeWayMerge(JsonNode? baseline, JsonNode? user, JsonNode? shipped)
+    {
+        if (user is JsonObject u && shipped is JsonObject s)
+        {
+            var b = baseline as JsonObject;
+            var result = new JsonObject();
+            foreach (var (key, value) in u)
+            {
+                if (s.ContainsKey(key)) result[key] = ThreeWayMerge(b?[key], value, s[key])?.DeepClone();
+                else if (b is null || !b.ContainsKey(key) || !JsonNode.DeepEquals(b[key], value)) result[key] = value?.DeepClone();
+            }
+            foreach (var (key, value) in s)
+                if (!u.ContainsKey(key)) result[key] = value?.DeepClone();
+            return result;
+        }
+        return JsonNode.DeepEquals(baseline, user) ? shipped?.DeepClone() : user?.DeepClone();
+    }
+
+    /// <summary>Copies a file that could not be read to name.broken-date.json. Null if even that failed.</summary>
+    public static string? Quarantine(string path)
+    {
+        try
+        {
+            var copy = Path.Combine(Path.GetDirectoryName(path)!,
+                $"{Path.GetFileNameWithoutExtension(path)}.broken-{DateTime.Now:yyyyMMdd-HHmmss}{Path.GetExtension(path)}");
+            File.Copy(path, copy, overwrite: true);
+            return copy;
+        }
+        catch { return null; }
+    }
+
+    private static JsonNode? Parse(string? json)
+    {
+        if (json is null) return null;
+        try { return JsonNode.Parse(json, documentOptions: new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true }); }
+        catch { return null; }
+    }
+
+    private static bool TryWrite(string path, string? text)
+    {
+        if (text is null) return false;
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            var tmp = path + ".tmp";
+            File.WriteAllText(tmp, text);
+            File.Move(tmp, path, overwrite: true);
+            return true;
+        }
+        catch { return false; }   // read-only profile
     }
 
     public static string UserPath(string fileName) => Path.Combine(SettingsStore.DataDirectory, fileName);
@@ -147,9 +231,9 @@ public static class Providers
     public static IReadOnlyList<DefaultLine> DefaultLines { get; private set; } = [];
     public static IReadOnlyList<MetalConfig> Metals { get; private set; } = [];
 
-    public static void Load()
+    public static void Load(string? userDirectory = null)
     {
-        var root = DataFiles.Load("providers.json");
+        var root = DataFiles.Load("providers.json", userDirectory);
         _providers = DataFiles.Deserialize<Dictionary<string, ProviderConfig>>(root["providers"] ?? new JsonObject());
         _providers = new Dictionary<string, ProviderConfig>(_providers, StringComparer.OrdinalIgnoreCase);
         Links = root["links"] is JsonNode l ? DataFiles.Deserialize<List<LinkConfig>>(l) : [];
@@ -175,9 +259,9 @@ public static class Currencies
     private static string[] _quotes = ["USD"];
     private static Dictionary<string, string> _fiat = new(StringComparer.OrdinalIgnoreCase);
 
-    public static void Load()
+    public static void Load(string? userDirectory = null)
     {
-        var root = DataFiles.Load("currencies.json");
+        var root = DataFiles.Load("currencies.json", userDirectory);
         _quotes = root["quotes"] is JsonNode q ? DataFiles.Deserialize<string[]>(q) : ["USD"];
         _fiat = root["fiat"] is JsonNode f
             ? new Dictionary<string, string>(DataFiles.Deserialize<Dictionary<string, string>>(f), StringComparer.OrdinalIgnoreCase)

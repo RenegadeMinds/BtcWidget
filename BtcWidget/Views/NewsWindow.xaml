@@ -17,7 +17,7 @@
     <!--
         Headline popup. One merged list, newest first, a date separator wherever the day changes. Rows are
         source badge · title · time. Bright = newer than the last time the popup was open. It closes when it
-        loses focus or on Escape; drag the edges to resize (the size is remembered).
+        loses focus or on Escape, unless pinned; drag any edge or corner to resize (the size is remembered).
     -->
     <Window.Resources>
         <Style TargetType="ScrollBar" BasedOn="{StaticResource ThinScrollBar}" />
@@ -143,6 +143,7 @@
         </DataTemplate>
     </Window.Resources>
 
+    <Grid>
     <Border CornerRadius="10" BorderThickness="1" Margin="6" BorderBrush="{StaticResource FieldBorderBrush}">
         <Border.Background>
             <SolidColorBrush Color="{StaticResource PanelColor}" Opacity="0.97" />
@@ -188,4 +189,15 @@
                        Visibility="{Binding HasItems, Converter={StaticResource BoolToVisibility}}" />
         </Grid>
     </Border>
+
+    <!-- Resize grips: the four edges and corners, in the shadow margin. Tag is the Windows hit-test code. -->
+    <Border Tag="10" Width="8" HorizontalAlignment="Left" Margin="0,14" Background="Transparent" Cursor="SizeWE" MouseLeftButtonDown="Grip_MouseLeftButtonDown" />
+    <Border Tag="11" Width="8" HorizontalAlignment="Right" Margin="0,14" Background="Transparent" Cursor="SizeWE" MouseLeftButtonDown="Grip_MouseLeftButtonDown" />
+    <Border Tag="12" Height="8" VerticalAlignment="Top" Margin="14,0" Background="Transparent" Cursor="SizeNS" MouseLeftButtonDown="Grip_MouseLeftButtonDown" />
+    <Border Tag="15" Height="8" VerticalAlignment="Bottom" Margin="14,0" Background="Transparent" Cursor="SizeNS" MouseLeftButtonDown="Grip_MouseLeftButtonDown" />
+    <Border Tag="13" Width="14" Height="14" HorizontalAlignment="Left" VerticalAlignment="Top" Background="Transparent" Cursor="SizeNWSE" MouseLeftButtonDown="Grip_MouseLeftButtonDown" />
+    <Border Tag="14" Width="14" Height="14" HorizontalAlignment="Right" VerticalAlignment="Top" Background="Transparent" Cursor="SizeNESW" MouseLeftButtonDown="Grip_MouseLeftButtonDown" />
+    <Border Tag="16" Width="14" Height="14" HorizontalAlignment="Left" VerticalAlignment="Bottom" Background="Transparent" Cursor="SizeNESW" MouseLeftButtonDown="Grip_MouseLeftButtonDown" />
+    <Border Tag="17" Width="14" Height="14" HorizontalAlignment="Right" VerticalAlignment="Bottom" Background="Transparent" Cursor="SizeNWSE" MouseLeftButtonDown="Grip_MouseLeftButtonDown" />
+    </Grid>
 </Window>

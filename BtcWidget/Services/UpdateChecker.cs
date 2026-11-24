@@ -26,6 +26,10 @@ public static class UpdateChecker
 
     public static string CurrentText => Current.ToString(3);
 
+    /// <summary>The automatic check is due: never checked, or the last successful check is a day old.</summary>
+    public static bool IsDue(DateTimeOffset? lastCheck, DateTimeOffset now) =>
+        lastCheck is not { } t || now - t >= TimeSpan.FromHours(24);
+
     /// <summary>Set after <see cref="CheckAsync"/> returns null: why.</summary>
     public static string LastError { get; private set; } = "";
 

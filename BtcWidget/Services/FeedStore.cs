@@ -29,18 +29,34 @@ public sealed class FeedStore
         [JsonPropertyName("feeds")] public List<NewsFeed> Feeds { get; set; } = [];
     }
 
-    public string Path { get; } = System.IO.Path.Combine(SettingsStore.DataDirectory, "feeds.json");
+    public string Path { get; }
+
+    /// <summary>Set when feeds.json could not be read: what happened, for the user.</summary>
+    public string? LoadProblem { get; private set; }
+    private bool _saveBlocked;
+
+    public FeedStore(string? directory = null) => Path = System.IO.Path.Combine(directory ?? SettingsStore.DataDirectory, "feeds.json");
+
     public static string DefaultsPath { get; } = System.IO.Path.Combine(AppContext.BaseDirectory, "Data", "feeds.json");
 
     /// <summary>The user's list; the shipped defaults when there is none yet (and they are written out).</summary>
     public List<NewsFeed> Load()
     {
+        var existed = File.Exists(Path);
         var feeds = Read(Path);
-        if (feeds is null)
+        if (feeds is not null) return feeds;
+
+        if (existed)
         {
-            feeds = Defaults();
-            try { Save(feeds); } catch { /* read-only profile etc. */ }
+            // Unreadable: keep a copy before anything saves over it. If even the copy fails, don't save at all.
+            var copy = DataFiles.Quarantine(Path);
+            _saveBlocked = copy is null;
+            LoadProblem = copy is null
+                ? "feeds.json could not be read, so the default feeds are in use and changes won't be saved."
+                : $"feeds.json had a mistake, so the default feeds are in use. Your file was saved as {System.IO.Path.GetFileName(copy)}.";
         }
+        feeds = Defaults();
+        try { Save(feeds); } catch { /* read-only profile etc. */ }
         return feeds;
     }
 
@@ -89,13 +105,14 @@ public sealed class FeedStore
         }
         catch
         {
-            return null;   // corrupt file: caller falls back to defaults without overwriting it… see Save
+            return null;   // unreadable: Load keeps a copy of it before falling back to the defaults
         }
     }
 
     public void Save(IEnumerable<NewsFeed> feeds)
     {
-        Directory.CreateDirectory(SettingsStore.DataDirectory);
+        if (_saveBlocked) return;
+        Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path)!);
         var file = new FeedFile
         {
             Comment = "Your news feeds. Add, remove, rename, reorder, or set \"enabled\" / \"color\" (#RRGGBB). Settings > News edits this file too.",

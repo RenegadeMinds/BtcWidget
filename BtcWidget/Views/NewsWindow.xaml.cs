@@ -1,11 +1,25 @@
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Interop;
 using BtcWidget.ViewModels;
 
 namespace BtcWidget.Views;
 
 public partial class NewsWindow : Window
 {
+    private const int WM_NCLBUTTONDOWN = 0x00A1;
+    [DllImport("user32.dll")] private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+    [DllImport("user32.dll")] private static extern bool ReleaseCapture();
+
+    /// <summary>Hands the drag to Windows' own size loop; the grip's Tag says which edge.</summary>
+    private void Grip_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        ReleaseCapture();
+        SendMessage(new WindowInteropHelper(this).Handle, WM_NCLBUTTONDOWN, int.Parse((string)((FrameworkElement)sender).Tag), IntPtr.Zero);
+    }
+
     public NewsWindow()
     {
         InitializeComponent();

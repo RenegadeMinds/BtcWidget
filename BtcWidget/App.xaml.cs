@@ -101,6 +101,7 @@ public partial class App : Application
             {
                 System.Diagnostics.Debug.WriteLine($"tray: {ex.Message}");
             }
+            ReportFileProblems();
         };
 
         _window.Show();
@@ -151,20 +152,29 @@ public partial class App : Application
         TrimHeap();
     }
 
-    /// <summary>Once a day, half a minute after startup so it never competes with the first price poll.</summary>
+    /// <summary>
+    /// Once a day, for as long as the widget runs. First look half a minute after startup, so it never competes
+    /// with the first price poll, then hourly: a check is only made when the last good one is a day old.
+    /// </summary>
     private void ScheduleUpdateCheck()
     {
-        if (!_settings.CheckForUpdates) return;
-        if (_settings.LastUpdateCheck is { } t && DateTimeOffset.UtcNow - t < TimeSpan.FromHours(24)) return;
         var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
         timer.Tick += async (_, _) =>
         {
-            timer.Stop();
-            if (!_settings.CheckForUpdates) return;
-            var info = await UpdateChecker.CheckAsync();
-            _vm.RecordUpdateCheck(info);
+            timer.Interval = TimeSpan.FromHours(1);
+            if (!_settings.CheckForUpdates || !UpdateChecker.IsDue(_settings.LastUpdateCheck, DateTimeOffset.UtcNow)) return;
+            _vm.RecordUpdateCheck(await UpdateChecker.CheckAsync());
         };
         timer.Start();
+    }
+
+    /// <summary>A notification (never a dialog) if a settings or data file could not be read at startup.</summary>
+    private void ReportFileProblems()
+    {
+        var problems = new[] { _settingsStore.LoadProblem, _feedStore.LoadProblem }.OfType<string>().Concat(DataFiles.Problems).ToList();
+        if (problems.Count == 0) return;
+        _vm.Status = problems[0];
+        _tray?.ShowBalloon("BtcWidget", string.Join(" ", problems));
     }
 
     /// <summary>Alerts dialog; <paramref name="lineId"/> preselects a line (row context menu).</summary>
@@ -191,10 +201,14 @@ public partial class App : Application
         if ((DateTime.UtcNow - _newsClosedAt).TotalMilliseconds < 400) return;
 
         var vm = new NewsViewModel(_vm, _news);
+        // The saved size, but never larger than the monitor the widget is on.
+        var area = _window.CurrentWorkArea();
+        var openedAt = new Size(Math.Min(Math.Max(300, _settings.NewsWidth), Math.Max(300, area.Width)),
+                                Math.Min(Math.Max(200, _settings.NewsHeight), Math.Max(200, area.Height)));
         var win = new NewsWindow
         {
             Owner = _window, DataContext = vm, FontSize = _settings.FontSize,
-            Width = Math.Max(300, _settings.NewsWidth), Height = Math.Max(200, _settings.NewsHeight)
+            Width = openedAt.Width, Height = openedAt.Height
         };
         vm.CloseRequested += () => win.Close();
 
@@ -206,7 +220,9 @@ public partial class App : Application
         win.Closed += (_, _) =>
         {
             vm.Detach();
-            _vm.SaveNewsSize(win.ActualWidth, win.ActualHeight);
+            // Only a real resize is saved: fitting onto a small monitor must not shrink the size used on a big one.
+            if (Math.Abs(win.ActualWidth - openedAt.Width) > 1 || Math.Abs(win.ActualHeight - openedAt.Height) > 1)
+                _vm.SaveNewsSize(win.ActualWidth, win.ActualHeight);
             _vm.MarkNewsSeen();
             _newsWindow = null;
             _newsClosedAt = DateTime.UtcNow;

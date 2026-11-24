@@ -198,6 +198,8 @@ public sealed partial class NewsViewModel : ObservableObject, ITooltipPolicy
 
     public void OpenInBrowser(NewsItemViewModel item) => Shell.OpenUrl(item.Item.Link);
 
+    public void OpenInReader(NewsItemViewModel item) => _main?.OpenInReader(item.Item.Link, item.Item.Title);
+
     public static void CopyLink(NewsItemViewModel item)
     {
         try { Clipboard.SetText(item.Item.Link.AbsoluteUri); } catch { /* clipboard busy */ }
@@ -272,7 +274,7 @@ public sealed partial class NewsItemViewModel : ObservableObject
     [RelayCommand] private void Open() => _parent.Open(this);
     [RelayCommand] private void AltOpen()
     {
-        if (_parent.OpensInReader) _parent.OpenInBrowser(this); else _parent.Open(this);
+        if (_parent.OpensInReader) _parent.OpenInBrowser(this); else _parent.OpenInReader(this);
     }
     [RelayCommand] private void CopyLink() => NewsViewModel.CopyLink(this);
     [RelayCommand] private void VisitSource() => _parent.VisitSource(this);

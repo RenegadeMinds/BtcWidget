@@ -1,249 +1,310 @@
 # BtcWidget
 
-A small, always-available Windows desktop widget for crypto and stock prices, with alerts and a news
-popup. One dark, translucent panel that sits in a corner of your screen: Bitcoin on Kraken, Tesla, the
-S&P 500, gold, a stock in BTC, whatever you put in it. No account, no API key, no telemetry.
+A small, always-available Windows desktop widget for crypto, stock and precious-metal prices, with alerts
+and a news popup.
 
-WPF on .NET 10. Windows 10 / 11, x64.
+It is one dark, translucent panel that lives on your desktop. Keep it as a narrow column in a corner, or
+stretch it into a slim bar across the screen. Put whatever you want to watch in it: Bitcoin on Kraken in
+CAD, Tesla priced in BTC, the S&P 500, spot gold from Kitco, Samsung on the Korea Exchange.
 
-## What it is
+There is no account, no API key, no telemetry and no installer.
 
-- **Lines.** Each line is one instrument, from one provider, in one quote currency: Bitcoin on Kraken in
-  CAD, ETH/BTC, Shopify on Toronto, IBM shown in CAD, Tesla priced in BTC. Price, change, and under it a
-  30-day sparkline, 7d / 30d change and where the price sits in its recent range.
-- **Eight price sources, no keys.** Kraken, Coinbase, Binance, CoinGecko, Yahoo Finance, Nasdaq, plus Kitco
-  and gold-api.com for spot gold, silver, platinum and palladium. Stocks on any exchange Yahoo knows
-  (NYSE, NASDAQ, TSX `SHOP.TO`, TSX Venture `.V`, CSE `.CN`, `005930.KS`, `307.F`), ETFs, indices, FX,
-  futures. When no market quotes a pair directly the price is derived through USD or an FX rate and
-  labelled as such.
-- **Alerts.** Price above / below, up / down more than N% in 24h, new 30-day high / low. The row lights up,
-  a Windows notification goes out, and the line polls every 5 minutes while it has an alert.
-- **News.** A popup next to the widget with headlines from the feeds you choose, newest first: 134 crypto,
-  stock, macro, commodity and forex feeds to pick from, tagged by sector and country (US, UK, EU, Canada,
-  Australia, Korea, Japan, China, Taiwan, India…), plus any RSS / Atom URL you add. Comma-separated text
-  filter, sector filter, pin it open, open in your browser or a built-in reader.
-- **Column or bar.** Lines stack in a narrow widget and tile side by side in a wide one, down to a slim
-  one-row bar across the screen, aligned left or right.
-- **Stays out of your way.** Minimize it and it comes back after N minutes or when an alert fires, without
-  ever taking focus. Start with Windows. Global hotkey. Tray icon. One instance only: launching it again
-  just brings the running widget forward. Opacity, font size, width, always-on-top, tooltips on or off.
-- **Local data only.** Settings, feeds and price history live in `%LocalAppData%\BtcWidget`. The only
-  network traffic is to the providers and feeds you have switched on.
+- **Platform:** Windows 10 or 11, x64
+- **Built with:** C#, WPF, .NET 10
+- **License:** [WTFPL](LICENSE)
+- **Full user guide:** [HELP.md](HELP.md)
+- **Version history:** [CHANGELOG.md](CHANGELOG.md)
 
-## Download
+## Contents
 
-Grab the latest from the **Releases** page. Two flavours of the same build:
+- [Features](#features)
+- [Download and run](#download-and-run)
+- [Quick start](#quick-start)
+- [Upgrading](#upgrading)
+- [Uninstalling](#uninstalling)
+- [Where the data comes from](#where-the-data-comes-from)
+- [Privacy and network use](#privacy-and-network-use)
+- [Your files](#your-files)
+- [Building from source](#building-from-source)
+- [Project layout](#project-layout)
+- [Extending it](#extending-it)
+- [Known limitations](#known-limitations)
+- [License and disclaimer](#license-and-disclaimer)
 
-| File | Size | Needs |
-|---|---|---|
-| `BtcWidget-<version>-win-x64.exe` | ~70 MB | Nothing. Self-contained single file; unzip nothing, run it. |
-| `BtcWidget-<version>-win-x64.zip` | ~4 MB | The [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) (x64). Unzip anywhere and run `BtcWidget.exe`. |
+## Features
 
-The built-in news reader uses the Edge WebView2 runtime, which Windows 11 includes; on Windows 10 install
-it from Microsoft if you want the reader (everything else works without it).
+### Prices
 
-The exe is not code-signed, so SmartScreen will ask once ("More info" → "Run anyway"). If you would rather
-not trust a binary, build it yourself in two commands; see below.
+- **Lines.** Each line is one instrument, from one provider, in one currency. You can have the same
+  instrument twice, for example Bitcoin from Kraken and from CoinGecko, to compare them.
+- **Eight keyless price sources.** Kraken, Coinbase, Binance, CoinGecko, Yahoo Finance, Nasdaq, Kitco and
+  gold-api.com.
+- **Crypto.** Well over a thousand trading pairs on the exchanges, and many more coins through CoinGecko.
+- **Stocks on major exchanges.** NYSE, NASDAQ, Toronto (`SHOP.TO`), TSX Venture (`LIXX.V`), the Canadian
+  Securities Exchange (`GTII.CN`), Korea (`005930.KS`), Tokyo (`7203.T`), Frankfurt and anything else Yahoo
+  Finance lists. ETFs, indices, FX and futures work the same way.
+- **Spot precious metals.** Gold, silver, platinum and palladium from Kitco or gold-api.com.
+- **Any currency.** Show any line in any quote currency. When no market quotes the pair directly, the widget
+  derives the price through USD or an FX rate, labels the row "derived", and shows each step in the tooltip.
+  Tesla in BTC is TSLA/USD ÷ BTC/USD.
+- **Context at a glance.** Under each price: a 30-day sparkline, the 7-day and 30-day change, and where the
+  price sits in its recent range, such as "4.2% below 30d high".
+- **Local history.** Every reading is stored on your PC. New lines backfill history where the provider
+  offers it, so the longer-range figures work straight away.
 
-## How to use it
+### Layout
 
-**First run.** The widget appears bottom-right with Bitcoin on Kraken and on CoinGecko. Drag the panel
-anywhere; the position is remembered. Drag the left or right edge to change the width, up to the full width
-of the screen it is on. Drag the top or bottom edge to cap the list height (double-click either to go back
-to "grow with content").
+- **Column or bar.** Lines stack in a narrow widget and tile side by side once two or more fit at full
+  readability.
+- **Measured, not configured.** The tile width comes from your actual lines, so it follows the font size,
+  price lengths and whether the detail row is on. Columns stay aligned across tiles.
+- **Stays together.** Spare width never spreads the tiles apart. They stay as a group on the left or right,
+  with a tiny arrow at the end of the empty space to switch sides.
+- **Slim one-row bar.** When everything fits on one row, the status and links move into the title bar.
+- **Resizable from four edges.** Left and right set the width, up to the full width of the monitor the
+  widget is on. Top and bottom set the list height.
+- **Yours to tune.** Panel opacity and text opacity are separate. Font size scales everything, dialogs
+  included.
 
-**Tall column or wide bar.** Lines tile side by side as soon as two or more fit at full readability. The
-tile width is measured from your lines, so it follows the font size, price lengths and the detail row, and
-columns stay aligned across tiles. Tiles keep that width and stay together: a tiny arrow at the far end of
-the spare room moves the group to that side. When everything fits on one row, the status and links join
-the title bar for a slim bar.
+### Alerts
 
-**Title bar, left to right:** news, alerts, add / remove lines, refresh, settings, about (?), minimize,
-close. The ✕ exits by default; Settings → Behaviour can make it minimize instead (Exit stays in the tray
-menu either way).
+- Price above or below a level, up or down more than a percentage, new 30-day high or low.
+- Lines with an alert switched on poll every 5 minutes by default, while everything else polls hourly.
+- A fired alert highlights its row, lights the bell, shows the message in the status line, sends a Windows
+  notification and is written to a log.
+- A minimized widget can come back when an alert fires, globally or per alert.
 
-**Lines** (the **+** button). Left: your lines, with reorder, remove, provider and quote switches. Right:
-type a name, ticker or pair (`shopify`, `tesla`, `xrp`, `BTC/CAD`, `ETHBTC`, `gold`, `^VIX`, `EURUSD=X`),
-pick a quote if you want one other than the default, click Add. Empty search shows the top coins and
-common indices, stocks, ETFs, FX and commodities. The default quote is USD for crypto and the listing
-currency for stocks; any other quote is derived when needed (Tesla in BTC = TSLA/USD ÷ BTC/USD) and the
-row says so, with every leg and its source in the tooltip.
+### News
 
-**Alerts** (the bell, or right-click a row → "Set an alert…"). Pick a line, a condition and a value; every
-rule on every line is listed with an on / off switch. Price and percent rules fire once per crossing and
-re-arm when the condition clears; the 30-day ones fire at most every 12 hours. Rows with rules show a small
-bell. When one fires the row gets an orange wash until you click it, the title-bar bell lights up, the footer
-shows the message, and a Windows notification goes out (switchable). Each rule can also decide whether a
-minimized widget comes back when it fires ("show widget: default / yes / no" on its row). Everything that
-fired is in `alerts.log` (Open log in the dialog).
+- A popup of headlines from the feeds you pick, merged into one list, newest first, with date separators.
+- **134 RSS and Atom feeds** to choose from, tagged by sector and country: crypto, stocks, ETFs, macro and
+  central banks, commodities and forex, from the US, Canada, the UK, Europe, Korea, Japan, China, Hong Kong,
+  Taiwan, India, Singapore and Australia. Add any other feed by URL.
+- Comma-separated text filter (`bitcoin, gold, bank`), sector and source filter, and a pin that keeps the
+  popup open while you read. Drag any edge or corner to resize it.
+- Open articles in your default browser or in a built-in reader window.
 
-**News** (the newspaper button, or the tray menu). One merged list across the feeds you have enabled,
-newest first, with date separators. Bright = newer than your last look, muted = seen; the button glows
-while there is something new. Click a headline to open it; right-click for Copy link, Visit the site, Hide
-that source. The header has:
+### Staying out of your way
 
-- a **text filter**, comma separated: `bitcoin, gold, bank` shows headlines containing any of those (a
-  term may contain spaces) and still fills the list up to your headline count with matches only;
-- a **source box** that narrows to one sector or one feed;
-- a **pin**: pinned, the popup stays open when you click elsewhere, so you can read one item and come back
-  for the next. Unpinned, it closes on focus loss. Escape clears the filter, then closes.
+- **Never steals focus.** A minimized widget can come back on a timer or on an alert, in front of your
+  other windows, while whatever you are typing into keeps the keyboard.
+- Start with Windows, global hotkey, tray icon, always-on-top, optional taskbar button.
+- Only one copy runs. Launching it again brings the running widget forward.
+- Tooltips can be switched off.
+- The title-bar ✕ can exit or minimize, your choice.
 
-Feeds are in **Settings → News**, grouped by sector in collapsible sections with a country tag (and a
-language tag when not English). Tick to enable, click a name to rename, ✕ to remove, add any RSS / Atom
-URL with a sector, or "Restore default feeds" to get back anything you removed. Six are on by default:
-CoinDesk, Cointelegraph, The Block, Decrypt, Bitcoin Magazine, ZeroHedge. "Open headlines in" switches
-between your browser and the built-in reader (a sun / moon button in the reader toggles dark pages; off
-by default because many sites half-implement it).
+## Download and run
 
-**Come back on its own.** Settings → Behaviour: "Come back after N minutes" (0 = never) and "Come back
-when an alert fires". Minimize the widget while you work and it reappears on its own, in front but
-**without taking focus**: whatever you were typing into keeps the keyboard.
+Get the latest version from the [Releases page](https://github.com/RenegadeMinds/BtcWidget/releases). There
+are two builds of the same program:
 
-**Hotkey and tray.** `Ctrl+Alt+B` (changeable) brings the widget to the front or minimizes it if it is
-already in front. Tray icon: left click shows / hides, right click gives Show, Refresh, Lines, Alerts, News,
-Settings, Exit.
+| File | Size | Needs | Best for |
+|---|---|---|---|
+| `BtcWidget-<version>-win-x64.exe` | about 60 MB | Nothing | The simplest option. One file, run it from anywhere. |
+| `BtcWidget-<version>-win-x64.zip` | about 2 MB | [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) (x64) | A small download and lower memory use, if you have the runtime or don't mind installing it. |
 
-**Settings** covers opacity (panel and text separately), font size (everything scales, dialogs included),
-width, list height, tooltips, poll intervals, hotkey, always-on-top, taskbar, start with Windows, what the
-✕ does, the conversion-rate provider and its fallback for derived prices, alerts, and news.
+To run the zip build, unzip it to a folder of your choice and start `BtcWidget.exe`.
 
-**About** (the ? button, or the tray menu) shows the version, links here, and checks GitHub Releases for a
-newer version on demand. It also checks once a day on its own (switchable there) and lights the ? button
-when one is out. Nothing else ever phones home.
+**SmartScreen.** The program is not code-signed, so Windows may warn you the first time. Choose **More
+info**, then **Run anyway**. If you would rather not trust a binary, [build it yourself](#building-from-source).
 
-### Where your data lives
+**Built-in reader.** The optional news reader uses the Microsoft Edge WebView2 runtime. Windows 11 includes
+it. On Windows 10, install it from Microsoft if it is missing. Everything else works without it.
 
-`%LocalAppData%\BtcWidget\`
+## Quick start
 
-| File | Contents |
+1. Run the program. The widget appears at the bottom right with Bitcoin from Kraken and CoinGecko.
+2. Drag the panel to wherever you want it. The position is remembered.
+3. Click **+** to add lines. Type `tesla`, `gold cad`, `BTC/CAD` or `shopify`, then click **Add**.
+4. Click the **bell** to set an alert, such as "Tesla, price above 410" or "Bitcoin, up more than 3.5%".
+5. Click the **newspaper** to read headlines. Choose your feeds in **Settings → News**.
+6. Drag the left or right edge to make it wider. Lines tile side by side as soon as two fit.
+
+The title-bar buttons, from left to right, are: **news, alerts, add or remove lines, refresh, settings,
+about (?), minimize, close**.
+
+For everything else, including every setting, see the **[user guide](HELP.md)**.
+
+## Upgrading
+
+Replace the old exe, or the old unzipped folder, with the new one. Your lines, alerts, settings, feeds and
+price history live in a separate folder and carry over.
+
+If you use **Start with Windows** and the new exe has a different name or location, run it once. The widget
+updates its startup entry to point at itself if the setting is on.
+
+**Your edits survive, and fixes still arrive.** If a new version corrects a provider URL or adds a footer link,
+you get it automatically, unless you changed that same value yourself, in which case yours is kept. A copy of
+your file from before the update is saved in the `shipped` folder.
+
+## Uninstalling
+
+There is no installer, so removal is manual:
+
+1. If **Start with Windows** is on, switch it off in Settings.
+2. Exit from the tray icon menu.
+3. Delete the exe or the unzipped folder.
+4. Delete `%LocalAppData%\BtcWidget` to remove your settings and history.
+5. If you used the single-file exe, also delete its unpacked files in `%TEMP%\.net`, in the folder named
+   after the exe.
+
+## Where the data comes from
+
+| Id | Provider | Covers | Search | History | Notes |
+|---|---|---|---|---|---|
+| `kraken` | Kraken | Crypto, about 1,400 pairs | | 30 days, hourly | Official API. First choice for coins and pairs it lists, and the default source of conversion rates. |
+| `coinbase` | Coinbase | Crypto | | 75 days, 6-hourly | Official API. Second choice for coins. |
+| `binance` | Binance | Crypto ("USD" means the USDT market) | | 30 days, hourly | Official API. binance.com is blocked in some regions. |
+| `coingecko` | CoinGecko | Crypto in about 60 currencies | Yes | | Aggregator. Used when no exchange has the pair, and the default fallback for conversion rates. Supplies coin logos and the popular list. |
+| `yahoo` | Yahoo Finance | Stocks worldwide, ETFs, indices, FX, futures, crypto pairs | Yes | 3 months, daily | Unofficial endpoint. Default for everything except crypto and metals. Source of all FX rates. |
+| `nasdaq` | Nasdaq | US stocks and ETFs | | | Unofficial endpoint. An alternative if Yahoo misbehaves. |
+| `kitco` | Kitco | Gold, silver, platinum, palladium in USD, CAD, EUR and more | Yes (metals) | Through Yahoo futures | Unofficial endpoint behind Kitco's charts. Mid price and change since the previous close. Default for metals. |
+| `goldapi` | gold-api.com | Gold, silver, platinum, palladium in major currencies | | Through Yahoo futures | Price only. The change is calculated from history. |
+
+All of them are public and need no key. Polling is hourly by default, or every 5 minutes for lines with an
+alert.
+
+**Metal history.** Neither metal source offers free history, so a new metal line backfills daily closes from
+the matching futures contract on Yahoo (`GC=F`, `SI=F`, `PL=F`, `PA=F`). Futures usually trade slightly away
+from spot, so the first month of sparkline and 7-day / 30-day figures is futures-based. The widget's own spot
+readings then take over.
+
+**News.** The shipped feed list is [`BtcWidget/Data/feeds.json`](BtcWidget/Data/feeds.json). Every URL was
+checked on 2026-11-01: 253 candidates were probed and the 134 that worked were kept. These outlets are absent
+because they block feed readers or have no working feed: Reuters, Yahoo Finance, Barron's, Korea JoongAng
+Daily, Korea Times, Kyodo, NHK World (English), Asahi AJW, Caixin, Focus Taiwan, Financial Post, Kitco News,
+Glassnode, Coinbase and Binance.
+
+## Privacy and network use
+
+BtcWidget has no accounts, analytics or telemetry. It only contacts:
+
+- **The price providers** used by your lines.
+- **Yahoo Finance** for FX rates and metal history, and **Kraken or CoinGecko** (your choice) for crypto
+  conversion rates, when a line needs them.
+- **CoinGecko and Yahoo Finance** when you type in the Lines search box or open that dialog, and the
+  **exchanges** when you add a line, to find the best market for it.
+- **CoinGecko's image host** the first time a coin logo is needed. Logos are then cached on disk.
+- **The news feeds** you have switched on.
+- **The GitHub API**, to check for a newer release. You can turn off the automatic check in the About dialog.
+- **Any page you open** from the widget, in your browser or the built-in reader.
+
+Everything you configure stays on your PC.
+
+## Your files
+
+Everything is in `%LocalAppData%\BtcWidget\`:
+
+| File or folder | Contents |
 |---|---|
-| `settings.json` | Everything in Settings, window position, your lines (each with its alerts), the last update check |
-| `feeds.json` | Your news feeds: `id`, `name`, `sector`, `country`, optional `lang`, `url`, `site`, `enabled`, optional `color` (`#RRGGBB` badge). Seeded from the shipped list on first run, then yours to edit by hand or in Settings |
-| `providers.json` | Everything about the price providers that can change: names, icons, the web page each click opens, API endpoints, the footer links, the two starter lines. Your edits are merged over the shipped file on every start, so new versions bring fixes and your changes survive |
-| `currencies.json` | Quote currencies offered in the dropdowns and the symbol shown for each fiat currency. Same merge rule |
-| `cache\` | Downloaded logos, one file each, fetched once and reused. Safe to delete |
-| `history.db` | SQLite, every reading, used for the sparklines, 7d / 30d and 30-day high / low |
-| `alerts.log` | One line per fired alert |
-| `webview\` | Profile of the built-in reader. Only exists once you have used it; safe to delete |
+| `settings.json` | Every setting, the window position, your lines and their alerts, and the last update check |
+| `feeds.json` | Your news feeds. Created from the shipped list on first run, then entirely yours |
+| `providers.json` | Provider names, icons, page links, API endpoints, footer links, the metals list and the starter lines |
+| `currencies.json` | The quote currencies offered in dropdowns and the symbol for each fiat currency |
+| `history.db` | SQLite database of every price reading |
+| `alerts.log` | One line for each alert that fired |
+| `shipped\` | Reference copies of the data files, used to tell your edits apart from shipped values when you upgrade, plus your file as it was before the last update |
+| `*.broken-<date>.json` | A copy of a settings or feeds file that couldn't be read, kept so you can repair it |
+| `cache\` | Downloaded logos. Safe to delete |
+| `webview\` | Built-in reader profile. Only exists once the reader has been used. Safe to delete |
 
-Delete the folder and the widget starts fresh.
+**Hand-edit safely.** If `feeds.json` or `settings.json` has a mistake, the widget keeps a copy of your file, tells
+you with a notification, and carries on with defaults. If `providers.json` or `currencies.json` has a mistake, your
+file is left alone and the built-in values are used until you fix it.
 
-## How to build it
+Delete the whole folder and the widget starts fresh. The [user guide](HELP.md#customizing-with-the-data-files)
+explains how to edit the JSON files.
 
-Requirements: the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) on Windows. Visual
-Studio 2026 (or 2022 17.14+) with the .NET desktop workload if you want the designer; not required.
+## Building from source
+
+**Requirements:** Windows and the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0). Visual
+Studio 2026 with the **.NET desktop development** workload is optional, for the XAML designer and debugger.
 
 ```bash
 git clone https://github.com/RenegadeMinds/BtcWidget.git
 ```
 
 ```bash
+cd BtcWidget
+```
+
+```bash
 dotnet build BtcWidget -c Release
 ```
 
-The exe lands in `BtcWidget\bin\Release\net10.0-windows\`. Or open `BtcWidget.sln` and press F5.
+The program is then at `BtcWidget\bin\Release\net10.0-windows\BtcWidget.exe`. You can also open
+`BtcWidget.sln` in Visual Studio and press F5.
 
-To produce the two release artifacts (zip and single-file exe) into `release\`:
+To produce both release files in the `release` folder:
 
 ```bash
-.\build-release.ps1
+powershell -ExecutionPolicy Bypass -File .\build-release.ps1
 ```
 
-That runs `dotnet publish` twice: framework-dependent for the zip, self-contained single-file for the exe.
-The version comes from `<Version>` in `BtcWidget\BtcWidget.csproj`.
+The script runs `dotnet publish` twice: framework-dependent for the zip, and self-contained single-file for
+the exe. The version number comes from `<Version>` in `BtcWidget\BtcWidget.csproj`.
 
-Dependencies (all NuGet): CommunityToolkit.Mvvm, Microsoft.Data.Sqlite, Microsoft.Web.WebView2.
+**NuGet dependencies:** CommunityToolkit.Mvvm, Microsoft.Data.Sqlite, SQLitePCLRaw.bundle_e_sqlite3 and
+Microsoft.Web.WebView2.
 
-## Price providers
+## Project layout
 
-| Id | Covers | Search | History | Notes |
-|---|---|---|---|---|
-| `kraken` | Crypto, ~1,450 pairs | | 30d hourly | Official API. Default for coins / pairs it lists; default conversion-rate provider. |
-| `coinbase` | Crypto | | 75d 6-hourly | Official API. Second choice for coins. |
-| `binance` | Crypto ("USD" = USDT market) | | 30d hourly | Official API. binance.com geo-blocks some regions. |
-| `coingecko` | Crypto in ~60 quote currencies | yes | | Aggregator. Fallback when no exchange has the pair; default fallback conversion-rate provider. Supplies coin logos and the popular list. |
-| `yahoo` | Stocks worldwide, ETFs, indices, FX, futures, crypto pairs | yes | 3mo daily | Unofficial chart endpoint. Default for everything non-crypto, and the FX source for conversions. |
-| `nasdaq` | US stocks, ETFs | | | Unofficial. Alternative if Yahoo misbehaves. |
-| `kitco` | Spot gold, silver, platinum, palladium in USD, CAD, EUR and more | yes (metals) | via Yahoo futures | Unofficial endpoint behind Kitco's charts. Mid price and change since previous close. Default for metals. |
-| `goldapi` | Spot gold, silver, platinum, palladium in any major currency | | via Yahoo futures | gold-api.com. Price only; the change comes from history. |
-
-**Metals.** Type `gold`, `silver`, `xau`, or `gold cad` in the Lines dialog, or pick the Metals chip. Spot
-metals default to USD; pick any quote. Neither metal source offers free history, so a new metal line
-backfills 3 months of daily closes from the matching COMEX / NYMEX futures contract on Yahoo (`GC=F`,
-`SI=F`, `PL=F`, `PA=F`). Futures sit slightly above spot, so the first month of sparkline and 7d / 30d is
-futures-based until the widget's own spot readings take over. Which metals exist, their Kitco codes,
-futures symbols and providers are all in `providers.json` → `metals`.
-
-All are public endpoints with no key. They are polled hourly by default (every 5 minutes for lines with an
-alert), which is well inside every provider's unauthenticated limits. Stooq, Alpha Vantage, Finnhub, Twelve
-Data, Polygon, FRED and CoinCap were considered and skipped: they need a key or sit behind a browser check.
-
-## Provider links and endpoints
-
-Nothing about an external site is hardcoded. `providers.json` holds, per provider, the display name, icon,
-the page a click opens (`"page": "https://pro.kraken.com/app/trade/{base}-{quote}"`) and each API endpoint,
-all as templates with placeholders (`{symbol}`, `{base}`, `{BASE}`, `{quote}`, `{QUOTE}`, `{coinId}`,
-`{product}`, `{pair}`, …; the file's `_comment` lists them). The footer links and the two starter lines are
-there too. When a site changes its URL scheme, fix the template in your `%LocalAppData%\BtcWidget\providers.json`
-and it takes effect at the next start; fix it in `Data/providers.json` for everyone. Logos are downloaded
-once into `%LocalAppData%\BtcWidget\cache` and served from there.
-
-## News feeds
-
-The shipped list is [`BtcWidget/Data/feeds.json`](BtcWidget/Data/feeds.json): 134 feeds, every URL
-verified on 2026-11-01 (253 candidates probed, the rest were dead, blocked feed readers or had no RSS).
-Add a feed there and it reaches new installs and "Restore default feeds". Outlets that are not in the
-list because they block readers or have no working feed: Reuters, Yahoo Finance, Barron's, Korea JoongAng
-Daily, Korea Times, Kyodo, NHK World (English), Asahi AJW, Caixin, Focus Taiwan, Financial Post, Kitco,
-Glassnode, Coinbase, Binance.
-
-Feeds are fetched in parallel every 15 minutes (configurable), each on its own, so one dead site never
-blocks the rest; the popup footer names any that failed. RSS 2.0, RSS 1.0 and Atom are accepted. Headlines
-older than 48 hours are dropped.
-
-## Layout of the code
-
-| Folder | Purpose |
+| Folder (under `BtcWidget/`) | Purpose |
 |---|---|
-| `Models/` | `AppSettings` + `LineConfig` (persisted), `NewsFeed` (one feeds.json entry), `PricePoint` / `PriceQuote` / `SearchResult` |
-| `Data/` | `feeds.json`, `providers.json`, `currencies.json`: every external URL, name and list the app uses. Data, not code. Copied beside the exe and embedded in the assembly; the user's copies in `%LocalAppData%` override them |
-| `Services/` | `IPriceSource` + `IInstrumentSearch` and the six `*Source` providers; `PriceService` (per-line poll loop, derived prices, search fan-out); `HistoryStore` (SQLite); `PriceAnalysis`; `AlertEngine`; `AlertLog`; `NewsService` (RSS / Atom fetch, parse, merge); `FeedStore` (feeds.json); `ProviderData` (providers.json / currencies.json loader, URL templates); `ImageCache` (logo files); `TrayIcon` (Shell_NotifyIcon, balloon notifications); `HotkeyManager`; `SettingsStore`; `MemoryDiagnostics` |
-| `ViewModels/` | `MainViewModel` (widget + settings + alert dispatch + news state), `PriceRowViewModel`, `LinesViewModel`, `AlertsViewModel`, `NewsViewModel`, `NewsFeedOption` / `NewsFeedGroup`, `LinkViewModel` |
-| `Views/` | `MainWindow` (the widget), `LinesWindow`, `AlertsWindow`, `NewsWindow` (popup), `ReaderWindow` (WebView2), `SettingsWindow` |
-| `Controls/` | `Sparkline`; `TilePanel` (measured-width tiling, left / right alignment) |
-| `Converters/` | Price / percent formatting and colour converters |
-| `Assets/` | Icons. The provider badges are generated PNGs; drop in real logos with the same names if you like |
+| `Data/` | `feeds.json`, `providers.json`, `currencies.json`: every external URL, name and list the app uses. Copied beside the exe and embedded in the assembly. `baseline/` holds what version 1.4.1 shipped, so older copies can be upgraded without losing edits |
+| `Models/` | `AppSettings` and `LineConfig` (persisted), `NewsFeed`, `PricePoint`, `PriceQuote`, `SearchResult` |
+| `Services/` | `IPriceSource` and `IInstrumentSearch`, the provider classes (`KrakenSource`, `CoinbaseSource`, `BinanceSource`, `CoinGeckoSource`, `YahooSource`, `NasdaqSource`, and `KitcoSource` and `GoldApiSource` in `MetalSources.cs`), `PriceService` (polling, derived prices, search), `HistoryStore`, `PriceAnalysis`, `AlertEngine`, `AlertLog`, `NewsService`, `FeedStore`, `ProviderData` (data-file loader and URL templates), `ImageCache`, `UpdateChecker`, `StartupManager`, `TrayIcon`, `HotkeyManager`, `SettingsStore`, `MemoryDiagnostics` |
+| `ViewModels/` | `MainViewModel`, `PriceRowViewModel`, `LinesViewModel`, `AlertsViewModel`, `NewsViewModel`, `NewsFeedOption`, `NewsFeedGroup`, `AboutViewModel`, `LinkViewModel` |
+| `Views/` | `MainWindow` (the widget), `LinesWindow`, `AlertsWindow`, `NewsWindow`, `ReaderWindow`, `SettingsWindow`, `AboutWindow` |
+| `Controls/` | `Sparkline`, and `TilePanel` (measured-width tiling and alignment) |
+| `Converters/` | Price, percent and colour value converters |
+| `Assets/` | Application icon and provider badges |
 
-Colours and the shared control styles live in `App.xaml`. Design decisions and gotchas that are not obvious
-from the code (why tooltips are a class handler, why restoring without focus needs `WS_EX_NOACTIVATE`, the
-60 MB first-TextBox cost) are in comments at the relevant spots.
+Colours and shared control styles are in `App.xaml`.
 
-### Adding a price source
+## Extending it
 
-1. Add a class implementing `IPriceSource` in `Services/` (`NasdaqSource` is the minimal shape,
-   `CoinbaseSource` one with history and a cheap "do you have this pair" check). Declare which
-   `InstrumentKind`s it covers; implement `IInstrumentSearch` too if it can search. Throw
-   `PairNotSupportedException` when the provider has no market for `line.EffectiveQuote`; `PriceService`
-   then derives the price.
-2. Add it to the `all` array in `PriceService`'s constructor and a badge PNG to `Assets/`.
-3. It appears in the provider dropdown for matching kinds. To make it a default, extend
+**Change a URL or add a footer link.** Edit `Data/providers.json`. No code change is needed. Templates use
+placeholders such as `{base}`, `{QUOTE}` and `{coinId}`, listed in the file's `_comment`.
+
+**Add a news feed.** Add an entry to `Data/feeds.json`, or use **Settings → News → Add a feed** at runtime.
+
+**Add a metal.** Add an entry to `metals` in `Data/providers.json`.
+
+**Add a price provider:**
+
+1. Add an entry for it under `providers` in `Data/providers.json`: name, icon, page template and API URLs.
+2. Add a class implementing `IPriceSource` in `Services/`. `NasdaqSource` is the minimal shape, and
+   `CoinbaseSource` shows history and a cheap pair check. Read its URLs through `Providers.Get("yourid")`.
+   Implement `IInstrumentSearch` too if it can search.
+3. Throw `PairNotSupportedException` when it has no market for `line.EffectiveQuote`. `PriceService` then
+   derives the price.
+4. Add it to the `all` array in the `PriceService` constructor, and put a badge PNG in `Assets/`.
+5. It now appears in the provider dropdown for matching instrument kinds. To make it a default, extend
    `PriceService.PickProviderAsync`.
 
-## Notes
+## Known limitations
 
-- **Memory.** Idle, about 150 MB private bytes (the .NET runtime plus WPF; it does not grow), managed heap
-  3 to 6 MB. The first time any text box gets focus Windows loads a text-input component that costs ~60 MB
-  for the life of the process; accepted as a one-time OS cost. Set `BTCWIDGET_DIAG=1` before launching to
-  get memory snapshots in `%LocalAppData%\BtcWidget\diag.log`.
-- **Notifications** are the classic notification-area balloon, which Windows 10 / 11 render as a normal
-  toast and keep in the notification centre. They respect Focus Assist / Do Not Disturb, so if nothing
-  appears check that first; `alerts.log` records whether the call succeeded.
-- **Reader memory.** The built-in reader starts Edge WebView2 processes (100 MB+) while open and releases
-  them when the reader window closes, which is why the default is your system browser.
-- **Not financial advice**, obviously. Prices come from public endpoints with no guarantee of accuracy or
-  availability.
+- **`history.db` is never trimmed.** It grows slowly, by about 300 rows a day for each line with an alert.
+- **Memory.** After startup, expect roughly 240 MB of private memory for the single-file exe and 170 MB for
+  the zip build. Most of that is the .NET runtime and WPF. The first click into any text box adds about 60 MB
+  for the life of the process, because Windows loads its text-input components. The built-in reader adds more
+  while it is open and releases it when closed. Set the environment variable `BTCWIDGET_DIAG=1` to log memory
+  snapshots to `diag.log`.
+- **Unofficial endpoints.** Yahoo Finance, Nasdaq and Kitco don't offer official free APIs and could change
+  without notice. Because their URLs are in `providers.json`, most breakages can be fixed by editing a file.
+- **Not real-time.** Prices are as fresh as your polling interval and the provider's own delay. Some stock
+  exchanges are delayed by 15 minutes or more on free sources.
+- **Windows x64 only.**
 
-## License
+## License and disclaimer
 
-[WTFPL](http://www.wtfpl.net/) — Do What The F\*ck You Want To Public License. See [LICENSE](LICENSE).
-Copyright © 2025–2026 Ryan Smyth / Renegade Minds.
+Released under the [WTFPL](http://www.wtfpl.net/), the Do What The F\*ck You Want To Public License. See
+[LICENSE](LICENSE).
+
+Copyright © 2025-2026 Ryan Smyth / Renegade Minds.
+
+This software is for information only and is **not financial advice**. Prices, alerts and news come from
+third-party public sources with no guarantee of accuracy, timeliness or availability. Don't rely on it for
+trading decisions. All product and company names belong to their owners, and this project isn't affiliated
+with any of the data providers or news outlets it can display.

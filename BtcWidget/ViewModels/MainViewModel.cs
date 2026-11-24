@@ -454,13 +454,14 @@ public sealed partial class MainViewModel : ObservableObject, ITooltipPolicy
     {
         var index = Feeds.FindIndex(f => f.Id.Equals(feedId, StringComparison.OrdinalIgnoreCase));
         var explicitColor = index >= 0 ? Feeds[index].Color : null;
-        var key = explicitColor ?? $"#{(index < 0 ? HashHue(feedId) : index * 137.508 % 360):0}";
+        // A colour that doesn't parse is treated as no colour: a typo in feeds.json must not take the widget down.
+        var hasColor = explicitColor is not null & TryParseColor(explicitColor ?? "", out var color);
+        var hue = Math.Round(index < 0 ? HashHue(feedId) : index * 137.508 % 360);
+        var key = hasColor ? color.ToString() : $"hue:{hue}";
         lock (_badgeBrushes)
         {
             if (_badgeBrushes.TryGetValue(key, out var b)) return b;
-            Brush brush;
-            if (explicitColor is not null && TryParseColor(explicitColor, out var c)) brush = new SolidColorBrush(c);
-            else brush = new SolidColorBrush(FromHsl(double.Parse(key[1..], System.Globalization.CultureInfo.InvariantCulture), 0.45, 0.42));
+            var brush = new SolidColorBrush(hasColor ? color : FromHsl(hue % 360, 0.45, 0.42));
             brush.Freeze();
             _badgeBrushes[key] = brush;
             return brush;
@@ -520,7 +521,14 @@ public sealed partial class MainViewModel : ObservableObject, ITooltipPolicy
 
     public void OpenArticle(Uri url, string title)
     {
-        if (NewsOpenIn == "reader" && ArticleRequested is not null) ArticleRequested.Invoke(url, title);
+        if (NewsOpenIn == "reader") OpenInReader(url, title);
+        else Shell.OpenUrl(url);
+    }
+
+    /// <summary>The built-in reader, whatever the default is (the headline menu offers it explicitly).</summary>
+    public void OpenInReader(Uri url, string title)
+    {
+        if (ArticleRequested is not null) ArticleRequested.Invoke(url, title);
         else Shell.OpenUrl(url);
     }
 
@@ -594,9 +602,10 @@ public sealed partial class MainViewModel : ObservableObject, ITooltipPolicy
     /// <summary>Store the result of an update check (manual or daily) and light the ? button if it is newer.</summary>
     public void RecordUpdateCheck(UpdateInfo? info)
     {
-        _settings.LastUpdateCheck = DateTimeOffset.UtcNow;
+        // A failed check doesn't count, so it is tried again soon and About never says "up to date" after one.
         if (info is not null)
         {
+            _settings.LastUpdateCheck = DateTimeOffset.UtcNow;
             _settings.LatestVersion = info.Latest.ToString(3);
             _settings.LatestUrl = info.Url;
             HasUpdate = info.IsNewer;

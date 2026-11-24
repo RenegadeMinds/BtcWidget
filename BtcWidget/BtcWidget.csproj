@@ -45,6 +45,8 @@
          the user's copy lives in %LocalAppData%\BtcWidget -->
     <None Include="Data\*.json" CopyToOutputDirectory="PreserveNewest" />
     <EmbeddedResource Include="Data\*.json" LogicalName="BtcWidget.Data.%(Filename)%(Extension)" />
+    <!-- What 1.4.1 shipped: tells an untouched older copy of a data file from one the user edited -->
+    <EmbeddedResource Include="Data\baseline\*.json" LogicalName="BtcWidget.Data.baseline.%(Filename)%(Extension)" />
   </ItemGroup>
 
 </Project>

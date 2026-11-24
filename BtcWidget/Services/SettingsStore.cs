@@ -18,7 +18,13 @@ public sealed class SettingsStore
     public static string DataDirectory { get; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BtcWidget");
 
-    public string SettingsPath { get; } = Path.Combine(DataDirectory, "settings.json");
+    public string SettingsPath { get; }
+
+    /// <summary>Set when settings.json could not be read: what happened, for the user.</summary>
+    public string? LoadProblem { get; private set; }
+    private bool _saveBlocked;
+
+    public SettingsStore(string? directory = null) => SettingsPath = Path.Combine(directory ?? DataDirectory, "settings.json");
 
     public AppSettings Load()
     {
@@ -33,7 +39,13 @@ public sealed class SettingsStore
         }
         catch
         {
-            // Corrupt settings: fall through to defaults.
+            // Unreadable: keep a copy before anything saves over it, then carry on with defaults. If even the
+            // copy fails, don't save this session, so the user's file survives.
+            var copy = DataFiles.Quarantine(SettingsPath);
+            _saveBlocked = copy is null;
+            LoadProblem = copy is null
+                ? "settings.json could not be read, so defaults are in use and changes won't be saved."
+                : $"settings.json had a mistake, so defaults are in use. Your file was saved as {Path.GetFileName(copy)}.";
         }
         Migrate(settings);
         return settings;
@@ -65,7 +77,8 @@ public sealed class SettingsStore
 
     public void Save(AppSettings settings)
     {
-        Directory.CreateDirectory(DataDirectory);
+        if (_saveBlocked) return;
+        Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath)!);
         var tmp = SettingsPath + ".tmp";
         File.WriteAllText(tmp, JsonSerializer.Serialize(settings, JsonOptions));
         File.Move(tmp, SettingsPath, overwrite: true);

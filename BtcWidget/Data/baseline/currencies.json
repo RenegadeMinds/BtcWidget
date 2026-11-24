@@ -1,0 +1,11 @@
+{
+  "_comment": "Quote currencies offered in the dropdowns (any other can still be typed as BTC/XYZ), and the prefix used when showing a price in a fiat currency. Copied to %LocalAppData%\\BtcWidget\\currencies.json on first run; edit THAT file. Your file is merged over the shipped one on every start.",
+  "quotes": [ "USD", "CAD", "EUR", "GBP", "AUD", "JPY", "CHF", "BTC", "ETH", "USDT" ],
+  "fiat": {
+    "USD": "$",    "EUR": "€",    "GBP": "£",    "JPY": "¥",    "CAD": "C$",   "AUD": "A$",   "CHF": "CHF ",
+    "NZD": "NZ$",  "HKD": "HK$",  "SGD": "S$",   "CNY": "CN¥",  "INR": "₹",    "KRW": "₩",    "MXN": "MX$",
+    "BRL": "R$",   "SEK": "kr ",  "NOK": "kr ",  "DKK": "kr ",  "PLN": "zł ",  "ZAR": "R ",   "TRY": "₺",
+    "RUB": "₽",    "CZK": "Kč ",  "HUF": "Ft ",  "ILS": "₪",    "AED": "AED ", "TWD": "NT$",  "THB": "฿",
+    "PHP": "₱",    "IDR": "Rp ",  "MYR": "RM ",  "VND": "₫",    "ARS": "AR$",  "CLP": "CL$",  "COP": "CO$"
+  }
+}
